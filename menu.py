@@ -4,8 +4,10 @@ import datetime #To allow for keeping track of button press length
 import subprocess #To launch external processes
 from subprocess import call #Same reasons
 import gaugette.rotary_encoder # Lets the rotation be handled with threaded watching
-import ConfigParser # Lets us user aftersight.cfg easily
-
+from webcamvideo import WebcamVideoStream #Class for creating a camera thread
+from confmanager import ConfManager
+from raspivoice import Raspivoice
+from teradeep import Teradeep
 
 call (["sudo","cp","/home/pi/altgreet.txt","/home/pi/introtext.txt"])
 
@@ -26,49 +28,21 @@ p = GPIO.PWM(20, 25) #Set some initial value to give it a wiggle
 p.start(5)
 p.ChangeDutyCycle(0)#then shut it off
 
-
-#Use ConfigParser to Read Persistent Variables from AfterSight.CFG
-
-Config = ConfigParser.RawConfigParser() #set variable to read config into
-Config.read('aftersight.cfg') #read from aftersight.cfg
-
-ConfigVolume = Config.get('AfterSightConfigSettings','configvolume') #volume setting percentage
-ConfigRaspivoiceStartup = Config.get('AfterSightConfigSettings','configraspivoicestartup') #Does raspivoice execute on startup? Boolean True/False
-ConfigJetpacStartup = Config.get('AfterSightConfigSettings','configjetpacstartup') #Does Jetpac execute on startup? Boolean True/False
-ConfigRaspivoicePlaybackSpeed = Config.get('AfterSightConfigSettings','configraspivoiceplaybackspeed') #Playback rate of soundscapes
-ConfigRaspivoiceCamera = Config.get('AfterSightConfigSettings','configraspivoicecamera') #Which image source to use? -s0 = image -s1 = rpi cam module -s2 = first usb cam -s3 = second usb cam etc.
-ConfigJetpacNetwork = Config.get('AfterSightConfigSettings','configjetpacnetwork') #Which network to use
-ConfigJetpacCamera = Config.get('AfterSightConfigSettings','configjetpaccamera') #which camera device to use Generate this from a list of /dev/videoX devices?
-ConfigJetpacThreshold = Config.get('AfterSightConfigSettings','configjetpacthreshold') #Certainty threshold expressed as a two digit ratio (ie. 0.15)
-ConfigVibrationStartup = Config.get('AfterSightConfigSettings','configvibrationstartup') #Is vibration enable on startup
-
-#If you want to add a variable here, you must create an entry in aftersight.cfg as well. otherwise no bueno
-
+config = ConfManager() # Load our class with settings from aftersight.cfg
 bequiet = False #Key decision making variable. Shuts the main menuing system off while other processes that use the audio channel are in operation
                 #Initially we want it to be loud and making decisions unless an application that uses audio launches on startup
-if (ConfigRaspivoiceStartup == True and ConfigJetpacStartup == True): #Right now they both can't be true. When we fork the webcam to two virtual cams this will be possible
-        ConfigRaspivoiceStartup = True
-        ConfigJetpacStartup = False  #The temporary solution to this problem is to only startup raspivoice
-if ConfigRaspivoiceStartup == True:
-        bequiet = True #Prevents the menu items from being read or executed while external processes that use audio are running
-        subprocess.Popen(["sudo","/home/pi/raspivoice/Release/./raspivoice","-A","--speak",ConfigRaspivoiceCamera,ConfigRaspivoicePlaybackSpeed]) #Launch if startup execution is the menu setting
-if ConfigJetpacStartup == True:
-        subprocess.Popen(["sudo","python","/home/pi/jetpac.py"])
-
 vibration = False #By default vibration is turned off
 
-if ConfigVibrationStartup == True: #If the config file sets rangefinder/vibration for startup, toggle the variable for the vibration motor
+if config.ConfigVibrationStartup: #If the config file sets rangefinder/vibration for startup, toggle the variable for the vibration motor
         vibration = True
 
-print "Volume",ConfigVolume
-print "Raspivoice on Startup?",ConfigRaspivoiceStartup
-print "Jetpac on Startup?", ConfigJetpacStartup
-print "Raspivoice Soundscape Playback Speed", ConfigRaspivoicePlaybackSpeed
-print "Which Camera will raspivOICe use?" ,ConfigRaspivoiceCamera
-print "Which Network will Jetpac Use?", ConfigJetpacNetwork
-print "Which Camera will Jetpac Use?", ConfigJetpacCamera
-print "What is the threshold value for Jetpac?", ConfigJetpacThreshold
-print "Is Vibration Turned on at Startup?", ConfigVibrationStartup
+print "Volume",config.ConfigVolume
+print "Raspivoice on Startup?",config.ConfigRaspivoiceStartup
+print "Teradeep on Startup?", config.ConfigTeradeepStartup
+print "Raspivoice Soundscape Playback Speed", config.ConfigRaspivoicePlaybackSpeed
+#print "Which Camera will raspivOICe use?" ,config.ConfigRaspivoiceCamera
+print "What is the threshold value for Teradeep?", config.ConfigTeradeepThreshold
+print "Is Vibration Turned on at Startup?", config.ConfigVibrationStartup
 
 #The print statements are just to confirm a good config read
 
@@ -80,10 +54,10 @@ encoder.steps_per_cycle = 4 #the encoder always gives 4 for 1 detente
 
 oldexternalpowerstate = 0 # this variable enables an espeak event when the power plug is inserted or removed
 
-Main=["Launch Raspivoice","Launch Jetpac","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
-Settings=["Advance Volume","Raspivoice Settings", "Jetpac Settings","Return to main menu"]
-RaspivoiceSettings = ["Toggle Playback Speed", "Next Camera", "Toggle Raspivoice Autostart", "Return to Main Menu"]
-JetpacSettings = ["Next Network", "Next Threshold", "Next Camera", "Toggle Jetpac Autostart","Return to Main Menu"]
+Main=["Toggle Raspivoice","Toggle Teradeep","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
+Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Return to main menu"]
+RaspivoiceSettings = ["Toggle Playback Speed", "Toggle Raspivoice Autostart", "Return to Main Menu"]
+TeradeepSettings = ["Next Threshold",  "Toggle Teradeep Autostart","Return to Main Menu"]
 VolumeMenu = ["Volume Up", "Volume Down", "Return to Main Menu"]
 
 #You can change and add menu items above, but you MUST go to the section where the MenuLevel and menupos are evaluated for a button press/release in under three seconds
@@ -97,6 +71,23 @@ menupos = 0 #position in menu list
 seconddelta = 0
 
 call (["sudo","espeak","MainMenu,Rotate,Knob,For,Options"])
+camera_port = 0 #Open Camera 0
+#If your camera doesn't support HD, you'll have to change it here (1280X720)
+camera = WebcamVideoStream(src=camera_port, width=1280, height=720) #define where I dump camera input
+
+camerastarted = False
+raspi = Raspivoice(camera, config)
+tera = Teradeep(camera, config)
+if config.ConfigRaspivoiceStartup == True:
+	camera.start()
+	camerastarted = True
+	raspi.start()
+if config.ConfigTeradeepStartup == True:
+	if not camerastarted:
+		camera.start()
+		camerastarted = True
+
+	tera.start()
 while 1:  #Main Loop
     battstate = GPIO.input(27)
     switchstate = GPIO.input(9)
@@ -147,8 +138,8 @@ while 1:  #Main Loop
         elif (externalpowerstate ==0):
                 #print ('External Power Disconnected')
                 call (["sudo","espeak","ExternalPowerDisconnected"])
-    if (externalpowerstate == 0):
-        print ('External Power Disconnected, Running from Internal Battery')
+    #if (externalpowerstate == 0):
+        #print ('External Power Disconnected, Running from Internal Battery')
     #if vibration == True:
         #print "Start Vibration Routines, or make sure they are already running"
     #elif (vibration == False):
@@ -168,13 +159,46 @@ while 1:  #Main Loop
         if (t3 < 3 and t3 > 0): #If the button is released in under 3 seconds, execute the command for the currently selected menu and function
                 print "Detected Button Release in less than 3 seconds"
                 if bequiet == False:
-                #Main=["Launch Raspivoice","Launch Jetpac","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
+                #Main=["Launch Raspivoice","Launch Teradeep","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
                         if (MenuLevel == Main and menupos == 0): #1st option in main menu list is launch raspivoice
-                                bequiet = True
-                                subprocess.Popen(["sudo","/home/pi/raspivoice/Release/./raspivoice","-A","--speak",ConfigRaspivoiceCamera,ConfigRaspivoicePlaybackSpeed]) #Launch using config settings plus a few obligate command line flags for spoken menu and rotary encoder input
-                        if (MenuLevel == Main and menupos == 1): #Second Option in main menu list is launch Jetpac
-                                bequiet = True
-                                subprocess.Popen(["sudo","python","/home/pi/jetpac.py"])
+                                if (not raspi.running):
+                                	call (["sudo","espeak","Starting RaspiVoice"])
+                                	if (not camerastarted):
+                                		camera.start()
+                                		camerastarted = True
+
+                                	raspi.start()
+
+                                else:
+                                	call (["sudo","espeak","Stopping RaspiVoice"])
+                                	if (not tera.running):
+                                		camera.stop()
+                                		camerastarted = False
+
+                                	raspi.stop()
+
+
+                        if (MenuLevel == Main and menupos == 1): 
+                                if (not tera.running):
+                                	call (["sudo","espeak","Starting Teradeep"])
+                                	if (not camerastarted):
+                                		camera.start()
+                                		camerastarted = True
+
+                                	tera.start()
+
+                                else:
+                                	call (["sudo","espeak","Stopping Teradeep"])
+                                	if (not raspi.running):
+                                		camera.stop()
+                                		camerastarted = False
+
+                                	tera.stop()
+
+
+
+#                                bequiet = True
+#                                subprocess.Popen(["sudo","python","/home/pi/teradeep.py"])
                         if (MenuLevel == Main and menupos == 2):
                                 if vibration == True:
                                         call (["sudo","espeak","VibrationToggledOff"])
@@ -197,10 +221,10 @@ while 1:  #Main Loop
                                 subprocess.Popen(["aplay", "-D", "sysdefault"], stdin=espeak_process.stdout, stdout=subprocess.PIPE)
                 #Settings=["Advance Volume","Raspivoice Settings", "Jetpac Settings","Return to main menu"]
                         if (MenuLevel == Settings and menupos == 0):
-                                commandlinevolume = int(ConfigVolume)
+                                commandlinevolume = int(Cconfig.onfigVolume)
                                 commandlinevolume = commandlinevolume + 10
                                 if commandlinevolume > 100: #Wrap volume back to lowest setting
-                                        ConfigVolume = "70"
+                                        config.ConfigVolume = "70"
                                         commandlinevolume = 70 #lowest setting
                                 if commandlinevolume == 70:
                                         fakevolume = 10 #lowest setting said as 10%
@@ -216,120 +240,75 @@ while 1:  #Main Loop
                                 call (["sudo","espeak","Percent"])
                                 volumearg = ConfigVolume + "%"
                                 call (["sudo","amixer","sset","PCM,0",volumearg])
-                                ConfigVolume = str(commandlinevolume)
+                                config.ConfigVolume = str(commandlinevolume)
                                 menupos = 0 #keep menu position on advance volume to allow for repeated presses
                         if (MenuLevel == Settings and menupos == 1):
                                 MenuLevel = RaspivoiceSettings
                                 call (["sudo","espeak","RaspivoiceSettings"])
                                 menupos = 10
                         if (MenuLevel == Settings and menupos == 2):
-                                MenuLevel = JetpacSettings
-                                call (["sudo","espeak","JetpacSettings"])
+                                MenuLevel = TeradeepSettings
+                                call (["sudo","espeak","TeradeepSettings"])
                                 menupos = 10
                         if (MenuLevel == Settings and menupos == 3):
                                 MenuLevel = Main
                                 call (["sudo","espeak","MainMenu"])
                                 menupos = 10
-                 #RaspivoiceSettings = ["Toggle Playback Speed", "Next Camera", "Toggle Raspivoice Autostart", "Return to Main Menu"]
+                 #RaspivoiceSettings = ["Toggle Playback Speed", "Toggle Raspivoice Autostart", "Return to Main Menu"]
                         if (MenuLevel == RaspivoiceSettings and menupos == 0):
-                                if ConfigRaspivoicePlaybackSpeed  == "--total_time_s=1.05":
+                                if config.ConfigRaspivoicePlaybackSpeed  == "--total_time_s=1.05":
                                         call (["sudo","espeak","ChangedToFast"])
-                                        ConfigRaspivoicePlaybackSpeed = "--total_time_s=0.5"
-                                elif ConfigRaspivoicePlaybackSpeed == "--total_time_s=0.5":
+                                        config.ConfigRaspivoicePlaybackSpeed = "--total_time_s=0.5"
+                                elif config.ConfigRaspivoicePlaybackSpeed == "--total_time_s=0.5":
                                         call (["sudo","espeak","ChangedToSlow"])
-                                        ConfigRaspivoicePlaybackSpeed = "--total_time_s=2.0"
+                                        config.ConfigRaspivoicePlaybackSpeed = "--total_time_s=2.0"
                                 else:
                                         call (["sudo","espeak","ChangedToNormal"])
-                                        ConfigRaspivoicePlaybackSpeed = "--total_time_s=1.05"
+                                        config.ConfigRaspivoicePlaybackSpeed = "--total_time_s=1.05"
                                 menupos = 0 #Keep at playback speed setting to allow repeated toggle
+                                raspi.restart() # We want to relaunch raspivoce when we change this, ignored if not running
                         if (MenuLevel == RaspivoiceSettings and menupos == 1):
-                                if ConfigRaspivoiceCamera == "-s2":
-                                        call (["sudo","espeak","ChangedToCameraModule"])
-                                        ConfigRaspivoiceCamera = "-s1"
-                                else:
-                                        call (["sudo","espeak","ChangedToUSBCamera1"])
-                                        ConfigRaspivoiceCamera = "-s2"
-                                menupos = 1 #Keep at camera advance point to allow repeated toggle
-                        if (MenuLevel == RaspivoiceSettings and menupos == 2):
-                                if ConfigRaspivoiceStartup == True:
+                                if config.ConfigRaspivoiceStartup == True:
                                         call (["sudo","espeak","NoLaunchOnStartup"])
-                                        ConfigRaspivoiceStartup = False
+                                        config.ConfigRaspivoiceStartup = False
                                 else:
                                         call (["sudo","espeak","RaspivoiceWillAutostart"])
-                                        ConfigRaspivoiceStartup = True
-                        if (MenuLevel == RaspivoiceSettings and menupos == 3):
+                                        config.ConfigRaspivoiceStartup = True
+                        if (MenuLevel == RaspivoiceSettings and menupos == 2):
                                 MenuLevel = Main
+                                menupos = 10
+                                config.save()
                                 call (["sudo","espeak","Main Menu"])
-                #JetpacSettings = ["Next Network", "Next Threshold", "Next Camera", "Toggle Jetpac Autostart","Return to Main Menu"]
-                        if (MenuLevel == JetpacSettings and menupos == 0):
-                                if ConfigJetpacNetwork == "/home/pi/projects/DeepBeliefSDK/networks/ccv2010.ntwk":
-                                        call (["sudo","espeak","ChangingToLibCCV2012"])
-                                        ConfigJetpacNetwork = "/home/pi/projects/DeepBeliefSDK/networks/ccv2012.ntwk" #Slow, Very Accurate = 2nd Best
-                                elif ConfigJetpacNetwork == "/home/pi/projects/DeepBeliefSDK/networks/ccv2012.ntwk":
-                                        call (["sudo","espeak","ChangingtoJetpacNetwork"])
-                                        ConfigJetpacNetwork = "/home/pi/projects/DeepBeliefSDK/networks/jetpac.ntwk" #Fast, Fairly Accurate = Best
-                                else:
-                                        call (["sudo","espeak","ChangingToLibCCV2010"])
-                                        ConfigJetpacNetwork = "/home/pi/projects/DeepBeliefSDK/networks/ccv2010.ntwk" #Slowest, Accurate =  3rd Best
-                        if (MenuLevel == JetpacSettings and menupos == 1):
-                                if ConfigJetpacThreshold == "0.05":
-                                        call (["sudo","espeak","ChangingTo10%"]) #somewhat stringent
-                                        ConfigJetpacThreshold = "0.10"
-                                elif ConfigJetpacThreshold == "0.10":
+                #TeradeepSettings = ["Next Threshold", "Toggle Teradeep Autostart","Return to Main Menu"]
+
+                        if (MenuLevel == TeradeepSettings and menupos == 0):
+                                if config.ConfigTeradeepThreshold == "2":
+                                        call (["sudo","espeak","Changing To 5%"]) #somewhat stringent
+                                        config.ConfigTeradeepThreshold = "5"
+                                elif config.ConfigTeradeepThreshold == "5":
+                                        call (["sudo","espeak","ChangingTo10%"])
+                                        config.ConfigTeradeepThreshold = "10"            #More Stringent
+                                elif config.ConfigTeradeepThreshold == "10":
                                         call (["sudo","espeak","ChangingTo15%"])
-                                        ConfigJetpacThreshold = "0.15"            #More Stringent
-                                elif ConfigJetpacThreshold == "0.15":
+                                        config.ConfigTeradeepThreshold = "15"           #More Stringent
+                                elif config.ConfigTeradeepThreshold == "15":
                                         call (["sudo","espeak","ChangingTo20%"])
-                                        ConfigJetpacThreshold = "0.20"           #More Stringent
-                                elif ConfigJetpacThreshold == "0.20":
-                                        call (["sudo","espeak","ChangingTo25%"])
-                                        ConfigJetpacThreshold = "0.25"
-                                elif ConfigJetpacThreshold == "0.25":
-                                        call (["sudo","espeak","Changingto30%"])
-                                        ConfigJetpacThreshold = "0.30"            #Most stringent
+                                        config.ConfigTeradeepThreshold = "20"
                                 else:
-                                        call (["sudo","espeak","ChangingTo5%"])
-                                        ConfigJetpacThreshold = "0.05"            #Mid Stringency
-                        if (MenuLevel == JetpacSettings and menupos == 2):
-                                if ConfigJetpacCamera == "/dev/video0":
-                                        call (["sudo","espeak","ChangingToUSBCamera1"])
-                                        ConfigJetpacCamera = "/dev/video1"
-                                else:
-                                        call (["sudo","espeak","ChangingToUSBCamera0"])
-                                        ConfigJetpacCamera = "/dev/video0"
-                        if (MenuLevel == JetpacSettings and menupos == 3):
-                                if ConfigJetpacStartup == True:
+                                        call (["sudo","espeak","Changingto2%"])
+                                        config.ConfigTeradeepThreshold = "2"            #Most stringent
+                        if (MenuLevel == TeradeepSettings and menupos == 1):
+                                if config.ConfigTeradeepStartup == True:
                                         call (["sudo","espeak","NoLaunchOnStartup"])
-                                        ConfigJetpacStartup = False
+                                        config.ConfigTeradeepStartup = False
                                 else:
-                                        call (["sudo","espeak","JetpacWillAutostart"])
-                                        ConfigJetpacStartup = True
-                        if (MenuLevel == JetpacSettings and menupos == 4):
+                                        call (["sudo","espeak","TeradeepWillAutostart"])
+                                        config.ConfigTeradeepStartup = True
+                        if (MenuLevel == TeradeepSettings and menupos == 2):
+                        	config.save()
                                 MenuLevel = Main
                                 call (["sudo","espeak","Main Menu"])
                                 menupos = 10
-                        #Are the changes being reflected in the variables we want to write?
-                        print "Volume",ConfigVolume
-                        print "Raspivoice on Startup?",ConfigRaspivoiceStartup
-                        print "Jetpac on Startup?", ConfigJetpacStartup
-                        print "Raspivoice Soundscape Playback Speed", ConfigRaspivoicePlaybackSpeed
-                        print "Which Camera will raspivOICe use?" ,ConfigRaspivoiceCamera
-                        print "Which Network will Jetpac Use?", ConfigJetpacNetwork
-                        print "Which Camera will Jetpac Use?", ConfigJetpacCamera
-                        print "What is the threshold value for Jetpac?", ConfigJetpacThreshold
-                        print "Is Vibration Turned on at Startup?", ConfigVibrationStartup
-                        #Now lets set configparser up to write to file
-                        Config.set('AfterSightConfigSettings','configvolume',ConfigVolume)
-                        Config.set('AfterSightConfigSettings','configraspivoicestartup',ConfigRaspivoiceStartup)
-                        Config.set('AfterSightConfigSettings','configjetpacstartup',ConfigJetpacStartup)
-                        Config.set('AfterSightConfigSettings','configraspivoiceplaybackspeed',ConfigRaspivoicePlaybackSpeed)
-                        Config.set('AfterSightConfigSettings','configraspivoicecamera',ConfigRaspivoiceCamera)
-                        Config.set('AfterSightConfigSettings','configjetpacnetwork',ConfigJetpacNetwork)
-                        Config.set('AfterSightConfigSettings','configjetpaccamera',ConfigJetpacCamera)
-                        Config.set('AfterSightConfigSettings','configjetpacthreshold',ConfigJetpacThreshold)
-                        Config.set('AfterSightConfigSettings','configvibrationstartup',ConfigVibrationStartup)
-                        with open('aftersight.cfg', 'w') as configfile:    # save
-                                Config.write(configfile)
 
         t1=0 #Reset the timers
         t2=0
@@ -345,9 +324,9 @@ while 1:  #Main Loop
         print ">3<4",t3
         call (["sudo","killall","espeak"])
         call (["sudo","espeak","Terminating Programs"])
-        call (["sudo","killall","raspivoice"]) # Kills raspivoice if its running
-        call (["sudo","killall","jpcnn"]) #Kills jetpac neural net process
-        call (["sudo","killall","jetpac"]) #Kills Jetpac Python Looper
+#        call (["sudo","killall","raspivoice"]) # Kills raspivoice if its running
+#        call (["sudo","killall","jpcnn"]) #Kills jetpac neural net process
+#        call (["sudo","killall","jetpac"]) #Kills Jetpac Python Looper
         call (["sudo","killall","rangefinder"]) #Kills rangefinder vibration motor python looper
         p.ChangeDutyCycle(0) #If the vibration motor was interrupted in an energetic config this should quiet it
         bequiet = False
