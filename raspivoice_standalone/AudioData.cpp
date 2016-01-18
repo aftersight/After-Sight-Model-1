@@ -83,8 +83,7 @@ void AudioData::Play()
 	int bytes_per_sample = (use_stereo ? 4 : 2);
 
 	std::stringstream cmd;
-//	cmd << "aplay --nonblock -r" << sample_freq_Hz << " -c" << (use_stereo ? 2 : 1) << " -fS16_LE -D plughw:" << CardNumber;
-	cmd << "aplay -r" << sample_freq_Hz << " -c" << (use_stereo ? 2 : 1) << " -fS16_LE -D sysdefault";
+	cmd << "aplay --nonblock -r" << sample_freq_Hz << " -c" << (use_stereo ? 2 : 1) << " -fS16_LE -D plughw:" << CardNumber;
 	if (!Verbose)
 	{
 		cmd << " -q";

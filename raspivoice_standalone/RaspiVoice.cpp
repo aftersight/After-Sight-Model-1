@@ -186,14 +186,13 @@ void RaspiVoice::initUsbCam()
 		std::cout << "Opening USB camera..." << std::endl;
 	}
 
-//	cap.open(cam_id);
+	cap.open(cam_id);
 
-/*	if (!cap.isOpened())
+	if (!cap.isOpened())
 	{
 		throw(std::runtime_error("Could not open camera."));
-	} */
+	}
 	// Setting standard capture size, may fail; resize later
-	/*
 	cv::Mat rawImage;
 	cap.read(rawImage);  // Dummy read needed with some devices
 	//cap.set(CV_CAP_PROP_FRAME_WIDTH, 176);
@@ -204,7 +203,7 @@ void RaspiVoice::initUsbCam()
 	{
 		cap.set(CV_CAP_PROP_EXPOSURE, opt.exposure);
 	}
-*/
+
 	if (verbose)
 	{
 		std::cout << "Ok" << std::endl;
@@ -242,7 +241,7 @@ cv::Mat RaspiVoice::readImage()
 	}
 	else if (image_source >= 2) //OpenCv camera
 	{
-/*		cap.read(rawImage);
+		cap.read(rawImage);
 		if (opt.read_frames > 1)
 		{
 			for (int r = 1; r < opt.read_frames; r++)
@@ -250,18 +249,16 @@ cv::Mat RaspiVoice::readImage()
 				cap.read(rawImage);
 			}
 		}
-*/
-		printtime("ReadImage start, opencv.jpg");
-rawImage = cv::imread("/dev/shm/opencv.jpg", CV_LOAD_IMAGE_GRAYSCALE);
+
 		if (rawImage.empty())
 		{
 			throw(std::runtime_error("Error reading frame from camera."));
 		}
 
-//		cv::cvtColor(rawImage, processedImage, CV_BGR2GRAY);
+		cv::cvtColor(rawImage, processedImage, CV_BGR2GRAY);
 	}
-return rawImage;
-//	return processedImage;
+
+	return processedImage;
 }
 
 

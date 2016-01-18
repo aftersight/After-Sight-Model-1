@@ -29,13 +29,6 @@
 #include "KeyboardInput.h"
 #include "AudioData.h"
 
-
-bool FileExists(char* filename) 
-{
-    struct stat fileInfo;
-    return stat(filename, &fileInfo) == 0;
-}
-
 void *run_worker_thread(void *arg);
 bool setup_screen(void);
 void close_screen(void);
@@ -302,7 +295,6 @@ void *run_worker_thread(void *arg)
 
 		while (!rvopt_local.quit)
 		{
-			if (FileExists("/dev/shm/raspi_frame")) {
 			//Read one frame:
 			raspiVoice.GrabAndProcessFrame(rvopt_local);
 
@@ -310,19 +302,9 @@ void *run_worker_thread(void *arg)
 			pthread_mutex_lock(&rvopt_mutex);
 			rvopt_local = rvopt;
 			pthread_mutex_unlock(&rvopt_mutex);
-//			std::remove("/dev/shm/raspi_frame");
+
 			//Play frame:
 			raspiVoice.PlayFrame(rvopt_local);
-			std::remove("/dev/shm/raspi_frame");
-if (!FileExists("/dev/shm/raspi_played"))			
-						mknod("/dev/shm/raspi_played", S_IFREG | 0666, 0);
-			}
-			else {
-							pthread_mutex_lock(&rvopt_mutex);
-			rvopt_local = rvopt;
-			pthread_mutex_unlock(&rvopt_mutex);
-
-			}
 		}
 	}
 	catch (std::runtime_error err)

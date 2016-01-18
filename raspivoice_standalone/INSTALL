@@ -1,0 +1,99 @@
+INSTALL RaspiVoice
+Tested on Raspberry Pi Model B, running Raspbian, Linux raspberrypi 3.18.7+ #755 PREEMPT Thu Feb 12 17:14:31 GMT 2015 armv6l GNU/Linux
+And Raspberry Pi 2 Model B, running Raspbian, Linux raspberrypi 3.18.7-v7+ #755 SMP PREEMPT Thu Feb 12 17:20:48 GMT 2015 armv7l GNU/Linux 
+(check with uname - a)
+
+1. log into raspberry pi via ssh.
+
+2. install necessary packages:
+
+sudo apt-get install gcc cmake libopencv-dev binutils wget gcc-4.8 g++-4.8 libncurses5-dev espeak libasound2-dev libespeak-dev
+
+3. install raspicam: (follow http://www.uco.es/investiga/grupos/ava/node/40 in case of errors):
+
+cd ~
+wget http://iweb.dl.sourceforge.net/project/raspicam/raspicam-0.1.3.zip 
+unzip raspicam-0.1.3.zip
+cd raspicam-0.1.3
+mkdir build
+cd build
+cmake ..
+make -j 4
+sudo make install
+sudo ldconfig
+
+4. Install wiringPI:
+cd ~
+git clone git://git.drogon.net/wiringPi
+cd wiringPi
+./build
+
+5. Go to raspivoice source folder (where this INSTALL file is located) and build raspivoice:
+cd ~/raspivoice/
+
+# -either-: on Raspberry pi 1:
+make -j 4
+# -or-: on Raspberry Pi 2:
+make -j 4 CONFIG=release_rpi2
+
+6. If all went well, you can now test raspivoice in the Release folder (should output some text and keep running, cancel by pressing Enter.):
+./Release/raspivoice -s0 -v
+
+7. install to system:
+sudo cp Release/raspivoice /usr/local/bin/
+
+---------------------------------------------------------------------------------------
+
+Using raspivoice:
+
+- Show command line options:
+raspivoice --help
+
+- Choose camera/image input:
+Test image (Ascii art in config.h) (warning: most options do not work with the test image):
+raspivoice -s0
+
+Raspberry Pi camera (default):
+raspivoice -s1
+
+USB camera:
+raspivoice -s2
+Chooses camera with device number 0. (check with lsusb if connected)
+
+- Choose audio output:
+Default is analog line out (3.5mm headphone jack). Might be noisy, USB audio is preferred.
+if no audio via headphone jack: sudo raspi-config -> Advanced Options -> A9 Audio -> 1 Force 3.5mm ('headphone') jack
+
+If USB audio output is connected (e.g. USB headphones):
+List devices:
+aplay -l
+
+Output might look like this:
+**** List of PLAYBACK Hardware Devices ****
+card 0: ALSA [bcm2835 ALSA], device 0: bcm2835 ALSA [bcm2835 ALSA]
+  Subdevices: 8/8
+  Subdevice #0: subdevice #0
+  Subdevice #1: subdevice #1
+  Subdevice #2: subdevice #2
+  Subdevice #3: subdevice #3
+  Subdevice #4: subdevice #4
+  Subdevice #5: subdevice #5
+  Subdevice #6: subdevice #6
+  Subdevice #7: subdevice #7
+card 0: ALSA [bcm2835 ALSA], device 1: bcm2835 ALSA [bcm2835 IEC958/HDMI]
+  Subdevices: 1/1
+  Subdevice #0: subdevice #0
+card 1: Device [Generic USB Audio Device], device 0: USB Audio [USB Audio]
+  Subdevices: 1/1
+  Subdevice #0: subdevice #0
+
+For example, choose card 1:
+raspivoice -a1
+
+- Show preview window:
+If monitor is connected to raspberry pi, start X windows graphical user interface (startx), and run from terminal:
+
+raspivoice -p
+
+Otherwise, ssh -Y to raspberry pi. Windows: Use Xming and putty, set Connection->SSH->X11->Enable X11 forwarding.
+
