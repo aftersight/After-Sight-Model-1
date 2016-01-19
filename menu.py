@@ -221,7 +221,7 @@ while 1:  #Main Loop
                                 subprocess.Popen(["aplay", "-D", "sysdefault"], stdin=espeak_process.stdout, stdout=subprocess.PIPE)
                 #Settings=["Advance Volume","Raspivoice Settings", "Jetpac Settings","Return to main menu"]
                         if (MenuLevel == Settings and menupos == 0):
-                                commandlinevolume = int(Cconfig.onfigVolume)
+                                commandlinevolume = int(config.ConfigVolume)
                                 commandlinevolume = commandlinevolume + 10
                                 if commandlinevolume > 100: #Wrap volume back to lowest setting
                                         config.ConfigVolume = "70"
@@ -238,7 +238,7 @@ while 1:  #Main Loop
                                 call (["sudo","espeak","ChangingVolumeTo"])
                                 call (["sudo","espeak",fakevolume])
                                 call (["sudo","espeak","Percent"])
-                                volumearg = ConfigVolume + "%"
+                                volumearg = config.ConfigVolume + "%"
                                 call (["sudo","amixer","sset","PCM,0",volumearg])
                                 config.ConfigVolume = str(commandlinevolume)
                                 menupos = 0 #keep menu position on advance volume to allow for repeated presses
