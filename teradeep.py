@@ -31,7 +31,7 @@ class Teradeep:
 		if (os.path.exists(self.classify)):
 			os.remove(self.classify)
 
-		subprocess.Popen(["sudo","/home/pi/teradeep_opencv/teradeep_opencv","-m","/home/pi/teradeep_opencv/","-i","/dev/shm/teradeep.jpg"])
+		subprocess.Popen(["sudo","/home/pi/teradeep_opencv/teradeep_opencv","-m","/home/pi/teradeep_model/","-i","/dev/shm/teradeep.jpg"])
 		self.running = True
 		t = Thread(target=self.worker, args=())
 		t.start()
