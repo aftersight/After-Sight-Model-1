@@ -6,7 +6,10 @@ import subprocess #so I can run subprocesses in the background if I want
 #import ConfigParser #To read the config file modified by menu.py
 from subprocess import call #to call a process in the foreground
 import csv #To make an array of the certainty and identity results so we can find the top matches
+import serial #To read audible distance of rangefinder
 from operator import itemgetter
+
+maxbotix = serial.Serial("/dev/ttyAMA0",baudrate=9600,timeout=5) #Open a serial input to recieve from the maxbotix ultrasonic rangefinder
 
 class Teradeep:
 	def __init__(self, cam, cfg):
@@ -84,7 +87,25 @@ class Teradeep:
 					ThirdItem = " "
 				
 				espeakstring = FirstItem + ", " + SecondItem + ", " + ThirdItem # read top three, commas to make a small pause
-
+				if self.Config.ConfigAudibleDistance == True:
+					maxbotix.flushInput() #clear buffer to get fresh values if you don't do this, you won't get responsive readings
+        				currdistance = maxbotix.readline(10) #Take ten characters worth of the serial buffer that accumulates since the$
+        				stripstart = currdistance.find("R") #Look for the character "R", find out where it occurs in the string first
+        				stripend = stripstart + 5 #Define the end of the character length we need to grab the numeric info
+        				currdistance = currdistance[stripstart+1:stripend] #strip out the numeric info
+        				currmm = float(currdistance) #Now make the info a number instead of a string
+        				#print "Current mm", currmm
+        				currm = currmm/100 #convert millimeters to deciimeters
+        				#print "Convert mm to dm", currm
+        				currm = int(currm) #strip decimals
+        				#print "Strip Decimals", currm
+        				currm = float(currm) #Go back to being allowed decimals
+        				#print "Allow Decimals again", currm
+        				currm = currm/10  #convert to meters with one decimal place
+        				#print "now go from deciimeters to meters", currm
+        				currm = str(currm) #convert float to text for reading
+        				print "meters ", currm
+					espeakstring = espeakstring + currm + " Meters"
 #				topthree = [x[1] for x in matrix[0:3]]
 #				espeakstring = str(topthree[0]) + ", " + str(topthree[1]) + ", " + str(topthree[2])
 				espeak_process = subprocess.Popen(["espeak",espeakstring, "--stdout"], stdout=subprocess.PIPE)

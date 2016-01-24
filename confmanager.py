@@ -12,7 +12,7 @@ class ConfManager:
 		self.ConfigRaspivoiceCamera = self.Config.get('AfterSightConfigSettings','configraspivoicecamera') #Which image source to use? -s0 = image -s1 = rpi cam module -s2 = first usb cam -s3 = second usb cam etc.
 		self.ConfigTeradeepThreshold = self.Config.get('AfterSightConfigSettings','configteradeepthreshold') #Certainty threshold expressed as a two digit ratio (ie. 15)
 		self.ConfigVibrationStartup = self.Config.getboolean('AfterSightConfigSettings','configvibrationstartup') #Is vibration enable on startup
-
+		self.ConfigAudibleDistance = self.Config.getboolean('AfterSightConfigSettings','configaudibledistance') #Read the distance on the audio channel?
 		#If you want to add a variable here, you must create an entry in aftersight.cfg as well. otherwise no bueno
 
 	def save(self):
@@ -25,6 +25,7 @@ class ConfManager:
 		self.Config.set('AfterSightConfigSettings','configraspivoicecamera',self.ConfigRaspivoiceCamera)
 		self.Config.set('AfterSightConfigSettings','configteradeepthreshold',self.ConfigTeradeepThreshold)
 		self.Config.set('AfterSightConfigSettings','configvibrationstartup',self.ConfigVibrationStartup)
+		self.Config.set('AfterSightConfigSettings','configaudibledistance',self.ConfigAudibleDistance)
 		with open('aftersight.cfg', 'w') as configfile:    # save
 			self.Config.write(configfile)
 

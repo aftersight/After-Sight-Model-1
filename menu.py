@@ -1,15 +1,30 @@
 import time #required for sleep pauses
+import threading #We will be making threads
 import RPi.GPIO as GPIO #We use lots of GPIOs in this program
 import datetime #To allow for keeping track of button press length
 import subprocess #To launch external processes
-from subprocess import call #Same reasons
+import keyPress #Allow for asynchronous keyboard input lifted from http://stackoverflow.com/questions/510357/python-read-a-single-character-from-the-user
+from subprocess import call #to launch external processes
 import gaugette.rotary_encoder # Lets the rotation be handled with threaded watching
 from webcamvideo import WebcamVideoStream #Class for creating a camera thread
 from confmanager import ConfManager
 from raspivoice import Raspivoice
 from teradeep import Teradeep
 
-call (["sudo","cp","/home/pi/altgreet.txt","/home/pi/introtext.txt"])
+
+espeak_process = subprocess.Popen(["espeak", "-f","/home/pi/introtext.txt", "--stdout"], stdout=subprocess.PIPE)
+aplay_process = subprocess.Popen(["aplay", "-D", "sysdefault"], stdin=espeak_process.stdout, stdout=subprocess.PIPE)
+aplay_process.wait() #Forces wait on initial disclaimer reading force wait for short introtext on second and subsequent boots
+
+call (["sudo","cp","/home/pi/altgreet.txt","/home/pi/introtext.txt"]) #After first boot get rid of disclaimer and shorten the greeting
+
+
+def CheckToClose(k, (keys, printLock)): #This is required for the keyscanning to use the USB number pad
+    printLock.acquire()
+    print "Close: " + k
+    printLock.release()
+    if k == "c":                        #While debugging. If you press 'c' once, you can now use ctrl c to terminate the execution
+        keys.stopCapture()
 
 GPIO.setmode(GPIO.BCM)  #setup for pinouts of the chip for GPIO calls. This will be different for the rotary encoder library definitions which have to use wiringpi
 GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP) #GPIO for detecting low battery
@@ -55,7 +70,7 @@ encoder.steps_per_cycle = 4 #the encoder always gives 4 for 1 detente
 oldexternalpowerstate = 0 # this variable enables an espeak event when the power plug is inserted or removed
 
 Main=["Toggle Raspivoice","Toggle Teradeep","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
-Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Return to main menu"]
+Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Audible Distance","Return to main menu"]
 RaspivoiceSettings = ["Toggle Playback Speed", "Toggle Raspivoice Autostart", "Return to Main Menu"]
 TeradeepSettings = ["Next Threshold",  "Toggle Teradeep Autostart","Return to Main Menu"]
 VolumeMenu = ["Volume Up", "Volume Down", "Return to Main Menu"]
@@ -67,6 +82,9 @@ VolumeMenu = ["Volume Up", "Volume Down", "Return to Main Menu"]
 MenuLevel = Main #Select the Main Menu first
 menupos = 0 #position in menu list
 
+printLock = threading.Lock() #Setup for keyscanning thread
+keys = keyPress.KeyCapture()
+keys.startCapture(CheckToClose, (keys, printLock)) #Start the keyboard scanner thread
 
 seconddelta = 0
 
@@ -95,8 +113,10 @@ while 1:  #Main Loop
     CurrentMenuMaxSize = len(MenuLevel)-1 #Have to subtract one because lists start at zero, but the len function returns only natural numbers
 
     delta = encoder.get_delta()
-
-    if delta!=0:
+    keysPressed  = keys.getAsync()
+    print keysPressed
+    if (delta!=0 or keysPressed != []):
+	print keysPressed
         #print "rotate %d" % delta
 
         #The Rotary Encoder has the annoying feature of giving back four delta steps per single detente ~usually~
@@ -113,7 +133,14 @@ while 1:  #Main Loop
                 delta=1
         if delta<0:
                 delta=-1
+	
         #print "corrected delta",delta
+	if keysPressed == ['+']: #Simulate the outcome of rotary knob rotations to the right. Each time '+' is pressed it will act as though rotated cw
+		seconddelta = 3
+		delta = 1
+	if keysPressed == ['-']:
+		seconddelta = 3 #simulate the outcome of rotary knob rotations to the left. each time '-' is pressed it will act as though rotated ccw
+		delta = -1
         if seconddelta == 3: #This was the most important value to change to get reliable single increments of the menu items
                 seconddelta = 0
                 menupos=menupos+delta
@@ -156,7 +183,7 @@ while 1:  #Main Loop
         #print ('Battery Low, System Shutdown')
     if GPIO.input(25):
         #print('Button Released')
-        if (t3 < 3 and t3 > 0): #If the button is released in under 3 seconds, execute the command for the currently selected menu and function
+        if (t3 < 3 and t3 > 0 or keysPressed == ['\r']): #If the button is released in under 3 seconds, execute the command for the currently selected menu and function
                 print "Detected Button Release in less than 3 seconds"
                 if bequiet == False:
                 #Main=["Launch Raspivoice","Launch Teradeep","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
@@ -197,8 +224,6 @@ while 1:  #Main Loop
 
 
 
-#                                bequiet = True
-#                                subprocess.Popen(["sudo","python","/home/pi/teradeep.py"])
                         if (MenuLevel == Main and menupos == 2):
                                 if vibration == True:
                                         call (["sudo","espeak","VibrationToggledOff"])
@@ -206,9 +231,12 @@ while 1:  #Main Loop
                                         p.ChangeDutyCycle(0) #If it gets closed while active, this should quiet it down
                                         vibration = False
                                 else:
-                                        call (["sudo","espeak","VibrationToggledOn"])
-                                        subprocess.Popen(["sudo","python","/home/pi/rangefinder.py"])
-                                        vibration = True
+                                        if config.ConfigAudibleDistance == True:
+						call(["sudo","espeak","AudibleDistanceSelectedVibrationUnavailable"])
+					else:
+						call (["sudo","espeak","VibrationToggledOn"])
+                                        	subprocess.Popen(["sudo","python","/home/pi/rangefinder.py"])
+                                        	vibration = True
                         if (MenuLevel == Main and menupos == 3): #Enter The Settings Menu
                                 MenuLevel = Settings
                                 call (["sudo","espeak","ChangeSettings"])
@@ -250,7 +278,16 @@ while 1:  #Main Loop
                                 MenuLevel = TeradeepSettings
                                 call (["sudo","espeak","TeradeepSettings"])
                                 menupos = 10
-                        if (MenuLevel == Settings and menupos == 3):
+			if (MenuLevel == Settings and menupos == 3):
+				if config.ConfigAudibleDistance == True:
+                                        call (["sudo","espeak","AudibleDistanceOff"])
+                                        config.ConfigAudibleDistance = False
+                                else:
+                                        call (["sudo","espeak","AudibleDistanceOn"])
+					call (["sudo","killall","rangefinder"]) #Kills rangefinder vibration motor python looper
+                                        config.ConfigAudibleDistance = True
+
+                        if (MenuLevel == Settings and menupos == 4):
                                 MenuLevel = Main
                                 call (["sudo","espeak","MainMenu"])
                                 menupos = 10

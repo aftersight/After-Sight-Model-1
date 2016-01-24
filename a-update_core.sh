@@ -1,6 +1,7 @@
 #!/bin/sh
 cp /home/pi/After-Sight-Model-1/confmanager.py /home/pi/
 cp /home/pi/After-Sight-Model-1/menu.py /home/pi/
+cp /home/pi/After-Sight-Model-1/keyPress.py /home/pi/
 cp /home/pi/After-Sight-Model-1/rangefinder.py /home/pi/
 cp /home/pi/After-Sight-Model-1/raspivoice.py /home/pi/
 cp /home/pi/After-Sight-Model-1/teradeep.py /home/pi/

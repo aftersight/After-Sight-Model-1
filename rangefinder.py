@@ -8,9 +8,7 @@ import setproctitle
 setproctitle.setproctitle("rangefinder")
 
 GPIO.setmode(GPIO.BCM)  #setup for PWM
-GPIO.setup(20, GPIO.OUT)   #Define pin 20 as output, for PWM modulation of vibration motor
-p = GPIO.PWM(20, 25)  #channel = 20 , frequency = 25 hz
-p.start(5) #5% duty cycle to start. should immediately change as the rangefinder reads
+GPIO.setup(20, GPIO.OUT)   #Define pin 20 as output
 maxbotix = serial.Serial("/dev/ttyAMA0",baudrate=9600,timeout=5) #Open a serial input to recieve from the maxbotix ultrasonic sensor
 time.sleep(0.2)#This sleep interval is required to let the serial input open completely before it is read for the first time. Without this pause, random crashes on startup occur
 timesinceflip = 0
@@ -24,25 +22,53 @@ while 1:
     currmm = float(currdistance) #Now make the info a number instead of a string
     print currmm #comment this out after debugging
     if (currmm > 299 and currmm < 600):
-            p.ChangeFrequency(5)
-            p.ChangeDutyCycle(50)
+            pulses = 20 #make constant short pulses
+            for i in range(0,pulses):
+                GPIO.output(20,True)
+                time.sleep(0.01)
+                GPIO.output (20,False)
+                time.sleep(0.01)
     elif (currmm > 600 and currmm < 1000):
-            p.ChangeFrequency(10)
-            p.ChangeDutyCycle(50)
+         pulses = 10 #make constant short pulses
+         for i in range (0,pulses):
+                GPIO.output(20,True)
+                time.sleep(0.01)
+                GPIO.output (20,False)
+                time.sleep(0.01)
     elif (currmm > 1000 and currmm < 2000):
-            p.ChangeFrequency(20)
-            p.ChangeDutyCycle(50)
+        pulses = 8 #make constant short pulses
+        for i in range(0,pulses):
+                GPIO.output(20,True)
+                time.sleep(0.01)
+                GPIO.output (20,False)
+                time.sleep(0.01)
     elif (currmm > 2000 and currmm < 3000):
-            p.ChangeFrequency(40)
-            p.ChangeDutyCycle(50)
+        pulses = 5 #make constant short pulses
+        for i in range(0,pulses):
+                GPIO.output(20,True)
+                time.sleep(0.01)
+                GPIO.output (20,False)
+                time.sleep(0.01)
     elif (currmm > 3000 and currmm < 4000):
-            p.ChangeFrequency(80)
-            p.ChangeDutyCycle(50)
+        pulses = 3 #make constant short pulses
+        for i in range(0,pulses):
+                GPIO.output(20,True)
+                time.sleep(0.01)
+                GPIO.output (20,False)
+                time.sleep(0.01)
     elif currmm > 4000:
-            p.ChangeFrequency(160)
-            p.ChangeDutyCycle(50)
+        pulses = 2 #make constant short pulses
+        for i in range(0,pulses):
+                GPIO.output(20,True)
+                time.sleep(0.01)
+                GPIO.output (20,False)
+                time.sleep(0.01)
     else:
-	    p.ChangeFrequency(320)
-	    p.ChangeDutyCycle(50)
-    time.sleep(0.3)
+        pulses = 1 #make constant short pulses
+        for i in range (0,pulses):
+                GPIO.output(20,True)
+                time.sleep(0.01)
+                GPIO.output (20,False)
+                time.sleep(0.01)
+    time.sleep(0.05)
 p.ChangeDutyCycle(0)
