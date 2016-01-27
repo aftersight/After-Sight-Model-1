@@ -1,0 +1,36 @@
+Acknowledgements
+
+After Sight would like to thank the following:
+
+The raspberry pi foundation for making and supporting the brains of the unit. 
+
+Peter Meijer for invaluable support from the first spark of interest to the present moment. 
+Peter Meijer for the image to sound conversion algorithm. Please visit www.seeingwithsound.com for more information.
+
+Pranav Lal for incessant constructive feedback. 
+
+The Raspberry Pi forum contributors for always having somethings positive to contribute from code to revelations of new technology to cheap chinese electronics supplier connections...
+ Mr. Indoj from the forums especially has made great contributions. 
+The creators of the Teradeep neural network program
+
+. Murobo for letting me adapt a very good 3D printable case model
+
+. Adafruit for making great hardware and also maintaining a great learning area for the synthesis of hardware and software
+
+. Maxbotix for making a highly reliable and very tiny rangefinder
+
+The creators/maintainers of the following libraries/programs/compilers/operating systems:
+
+wiringpi
+ pigpiod 
+piscope 
+py-gaugette
+ py-setproctitle
+ python
+ c++ 
+linux
+
+ Lastly Mike would like to Thank Tina, Parker, and Morgan for putting up with the endless obsession. 
+
+If you think you should be in here and I missed you, just send me a note and I will be sure to add you. It's hard to keep track of everything after a couple years.
+

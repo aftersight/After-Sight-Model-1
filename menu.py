@@ -11,6 +11,19 @@ from confmanager import ConfManager
 from raspivoice import Raspivoice
 from teradeep import Teradeep
 
+GPIO.setmode(GPIO.BCM)  #setup for pinouts of the chip for GPIO calls. This will be different for the rotary encoder li$
+GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP) #GPIO for detecting low battery
+GPIO.setup(25, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Rotary Pushbutton Input
+GPIO.setup(9, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # GPIO for detecting Power Switch Position, used to shtudown system
+GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # GPIO for Detecting External Power State
+GPIO.setup(20, GPIO.OUT)   #Define pin 20 as output, for vibration motor
+pulses = 3 #make constant short pulses
+for i in range(0,pulses):
+        GPIO.output(20,True)
+        time.sleep(0.05)
+        GPIO.output (20,False)
+        time.sleep(0.05)
+
 
 espeak_process = subprocess.Popen(["espeak", "-f","/home/pi/introtext.txt", "--stdout"], stdout=subprocess.PIPE)
 aplay_process = subprocess.Popen(["aplay", "-D", "sysdefault"], stdin=espeak_process.stdout, stdout=subprocess.PIPE)
@@ -26,22 +39,12 @@ def CheckToClose(k, (keys, printLock)): #This is required for the keyscanning to
     if k == "c":                        #While debugging. If you press 'c' once, you can now use ctrl c to terminate the execution
         keys.stopCapture()
 
-GPIO.setmode(GPIO.BCM)  #setup for pinouts of the chip for GPIO calls. This will be different for the rotary encoder library definitions which have to use wiringpi
-GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_UP) #GPIO for detecting low battery
-GPIO.setup(25, GPIO.IN, pull_up_down=GPIO.PUD_UP) #Rotary Pushbutton Input
-GPIO.setup(9, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # GPIO for detecting Power Switch Position, used to shtudown system
-GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # GPIO for Detecting External Power State
-
 t1=0 #t1-t4 used for timing pushbutton events
 t2=0 # t2-t4 used as adders amongst a few intervals to allow for assignments of different functions based on time the button is depressed
 t3=0 #
 t4=0 #The final interval of 7 seconds shuts the device down (software, not electricity). It protects the filesystem and ought to remain
 
 timesinceflip = 0
-GPIO.setup(20, GPIO.OUT)   #Define pin 20 as output, for PWM modulation of vibration motor
-p = GPIO.PWM(20, 25) #Set some initial value to give it a wiggle
-p.start(5)
-p.ChangeDutyCycle(0)#then shut it off
 
 config = ConfManager() # Load our class with settings from aftersight.cfg
 bequiet = False #Key decision making variable. Shuts the main menuing system off while other processes that use the audio channel are in operation
@@ -71,7 +74,7 @@ oldexternalpowerstate = 0 # this variable enables an espeak event when the power
 
 Main=["Toggle Raspivoice","Toggle Teradeep","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
 Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Audible Distance","Return to main menu"]
-RaspivoiceSettings = ["Toggle Playback Speed", "Toggle Raspivoice Autostart", "Return to Main Menu"]
+RaspivoiceSettings = ["Toggle Playback Speed","Toggle Blinders","Advance Zoom","Toggle Foveal Mapping", "Toggle Raspivoice Autostart", "Return to Main Menu"]
 TeradeepSettings = ["Next Threshold",  "Toggle Teradeep Autostart","Return to Main Menu"]
 VolumeMenu = ["Volume Up", "Volume Down", "Return to Main Menu"]
 
@@ -91,21 +94,21 @@ seconddelta = 0
 call (["sudo","espeak","MainMenu,Rotate,Knob,For,Options"])
 camera_port = 0 #Open Camera 0
 #If your camera doesn't support HD, you'll have to change it here (1280X720)
-camera = WebcamVideoStream(src=camera_port, width=1280, height=720) #define where I dump camera input
+camera = WebcamVideoStream(src=camera_port, width=640, height=480) #define where I dump camera input
 
 camerastarted = False
 raspi = Raspivoice(camera, config)
 tera = Teradeep(camera, config)
 if config.ConfigRaspivoiceStartup == True:
-	camera.start()
-	camerastarted = True
-	raspi.start()
+        camera.start()
+        camerastarted = True
+        raspi.start()
 if config.ConfigTeradeepStartup == True:
-	if not camerastarted:
-		camera.start()
-		camerastarted = True
+        if not camerastarted:
+                camera.start()
+                camerastarted = True
 
-	tera.start()
+        tera.start()
 while 1:  #Main Loop
     battstate = GPIO.input(27)
     switchstate = GPIO.input(9)
@@ -114,9 +117,9 @@ while 1:  #Main Loop
 
     delta = encoder.get_delta()
     keysPressed  = keys.getAsync()
-    print keysPressed
+    #print keysPressed
     if (delta!=0 or keysPressed != []):
-	print keysPressed
+        print keysPressed
         #print "rotate %d" % delta
 
         #The Rotary Encoder has the annoying feature of giving back four delta steps per single detente ~usually~
@@ -133,14 +136,14 @@ while 1:  #Main Loop
                 delta=1
         if delta<0:
                 delta=-1
-	
+
         #print "corrected delta",delta
-	if keysPressed == ['+']: #Simulate the outcome of rotary knob rotations to the right. Each time '+' is pressed it will act as though rotated cw
-		seconddelta = 3
-		delta = 1
-	if keysPressed == ['-']:
-		seconddelta = 3 #simulate the outcome of rotary knob rotations to the left. each time '-' is pressed it will act as though rotated ccw
-		delta = -1
+        if keysPressed == ['+']: #Simulate the outcome of rotary knob rotations to the right. Each time '+' is pressed it will act as though rotated cw
+                seconddelta = 3
+                delta = 1
+        if keysPressed == ['-']:
+                seconddelta = 3 #simulate the outcome of rotary knob rotations to the left. each time '-' is pressed it will act as though rotated ccw
+                delta = -1
         if seconddelta == 3: #This was the most important value to change to get reliable single increments of the menu items
                 seconddelta = 0
                 menupos=menupos+delta
@@ -179,7 +182,7 @@ while 1:  #Main Loop
         #print ('Power Switch Is On, Keep Working')
     #if (battstate == 1):
         #print ('Battery OK, keep system up')
-    #if (battstate == 0):
+    #if (battstate == 0): #We should probably implement this at some point, but right now I dont want to for reasons relating to flakey operation of the battery charging module
         #print ('Battery Low, System Shutdown')
     if GPIO.input(25):
         #print('Button Released')
@@ -189,38 +192,38 @@ while 1:  #Main Loop
                 #Main=["Launch Raspivoice","Launch Teradeep","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
                         if (MenuLevel == Main and menupos == 0): #1st option in main menu list is launch raspivoice
                                 if (not raspi.running):
-                                	call (["sudo","espeak","Starting RaspiVoice"])
-                                	if (not camerastarted):
-                                		camera.start()
-                                		camerastarted = True
+                                        call (["sudo","espeak","Starting RaspiVoice"])
+                                        if (not camerastarted):
+                                                camera.start()
+                                                camerastarted = True
 
-                                	raspi.start()
+                                        raspi.start()
 
                                 else:
-                                	call (["sudo","espeak","Stopping RaspiVoice"])
-                                	if (not tera.running):
-                                		camera.stop()
-                                		camerastarted = False
+                                        call (["sudo","espeak","Stopping RaspiVoice"])
+                                        if (not tera.running):
+                                                camera.stop()
+                                                camerastarted = False
 
-                                	raspi.stop()
+                                        raspi.stop()
 
 
-                        if (MenuLevel == Main and menupos == 1): 
+                        if (MenuLevel == Main and menupos == 1):
                                 if (not tera.running):
-                                	call (["sudo","espeak","Starting Teradeep"])
-                                	if (not camerastarted):
-                                		camera.start()
-                                		camerastarted = True
+                                        call (["sudo","espeak","Starting Teradeep"])
+                                        if (not camerastarted):
+                                                camera.start()
+                                                camerastarted = True
 
-                                	tera.start()
+                                        tera.start()
 
                                 else:
-                                	call (["sudo","espeak","Stopping Teradeep"])
-                                	if (not raspi.running):
-                                		camera.stop()
-                                		camerastarted = False
+                                        call (["sudo","espeak","Stopping Teradeep"])
+                                        if (not raspi.running):
+                                                camera.stop()
+                                                camerastarted = False
 
-                                	tera.stop()
+                                        tera.stop()
 
 
 
@@ -232,11 +235,11 @@ while 1:  #Main Loop
                                         vibration = False
                                 else:
                                         if config.ConfigAudibleDistance == True:
-						call(["sudo","espeak","AudibleDistanceSelectedVibrationUnavailable"])
-					else:
-						call (["sudo","espeak","VibrationToggledOn"])
-                                        	subprocess.Popen(["sudo","python","/home/pi/rangefinder.py"])
-                                        	vibration = True
+                                                call(["sudo","espeak","AudibleDistanceSelectedVibrationUnavailable"])
+                                        else:
+                                                call (["sudo","espeak","VibrationToggledOn"])
+                                                subprocess.Popen(["sudo","python","/home/pi/rangefinder.py"])
+                                                vibration = True
                         if (MenuLevel == Main and menupos == 3): #Enter The Settings Menu
                                 MenuLevel = Settings
                                 call (["sudo","espeak","ChangeSettings"])
@@ -278,20 +281,20 @@ while 1:  #Main Loop
                                 MenuLevel = TeradeepSettings
                                 call (["sudo","espeak","TeradeepSettings"])
                                 menupos = 10
-			if (MenuLevel == Settings and menupos == 3):
-				if config.ConfigAudibleDistance == True:
+                        if (MenuLevel == Settings and menupos == 3):
+                                if config.ConfigAudibleDistance == True:
                                         call (["sudo","espeak","AudibleDistanceOff"])
                                         config.ConfigAudibleDistance = False
                                 else:
                                         call (["sudo","espeak","AudibleDistanceOn"])
-					call (["sudo","killall","rangefinder"]) #Kills rangefinder vibration motor python looper
+                                        call (["sudo","killall","rangefinder"]) #Kills rangefinder vibration motor python looper
                                         config.ConfigAudibleDistance = True
 
                         if (MenuLevel == Settings and menupos == 4):
                                 MenuLevel = Main
                                 call (["sudo","espeak","MainMenu"])
                                 menupos = 10
-                 #RaspivoiceSettings = ["Toggle Playback Speed", "Toggle Raspivoice Autostart", "Return to Main Menu"]
+                 #RaspivoiceSettings = ["Toggle Playback Speed", "Toggle Blinder","Advance Zoom","Toggle Foveal Mapping","Toggle Raspivoice Autostart", "Return to Main Menu"]
                         if (MenuLevel == RaspivoiceSettings and menupos == 0):
                                 if config.ConfigRaspivoicePlaybackSpeed  == "--total_time_s=1.05":
                                         call (["sudo","espeak","ChangedToFast"])
@@ -305,13 +308,40 @@ while 1:  #Main Loop
                                 menupos = 0 #Keep at playback speed setting to allow repeated toggle
                                 raspi.restart() # We want to relaunch raspivoce when we change this, ignored if not running
                         if (MenuLevel == RaspivoiceSettings and menupos == 1):
+                                if config.ConfigBlinders == "--blinders=0":
+                                        call (["sudo","espeak","BlinderEnabled"])
+                                        config.ConfigBlinders = "--blinders=50"
+                                else:
+                                        call(["sudo","espeak","BlindersDisabled"])
+                                        config.ConfigBlinders = "--blinders=0"
+                                raspi.restart()#We must relaunch raspivoice when we change this.
+                        if (MenuLevel == RaspivoiceSettings and menupos == 2):
+                                if config.ConfigZoom == "--zoom=1.0":
+                                        call (["sudo","espeak","ZoomChangedTo150Percent"])
+                                        config.ConfigZoom = "--zoom=1.5"
+                                elif config.ConfigZoom == "--zoom=1.5":
+                                        call (["sudo","espeak","ZoomChangedTo200Percent"])
+                                        config.ConfigZoom = "--zoom=2.0"
+                                else:
+                                        call (["sudo","espeak","ZoomTurnedOff"])
+                                        config.ConfigZoom = "--zoom=1.0"
+                                raspi.restart() #Restart Raspivoice with the new settings
+                        if (MenuLevel == RaspivoiceSettings and menupos == 3):
+                                if config.ConfigFovealmapping == "--foveal_mapping":
+                                        call (["sudo","espeak","FovealMappingDisabled"])
+                                        config.ConfigFovealmapping = "--verbose" #I had to use something here. leaving it as " " or "" wrecked things
+                                else:
+                                        call (["sudo","espeak","FovealMappingEnabled"])
+                                        config.ConfigFovealmapping = "--foveal_mapping"
+                                raspi.restart()#Restart Raspivoice with the new settings
+                        if (MenuLevel == RaspivoiceSettings and menupos == 4):
                                 if config.ConfigRaspivoiceStartup == True:
                                         call (["sudo","espeak","NoLaunchOnStartup"])
                                         config.ConfigRaspivoiceStartup = False
                                 else:
                                         call (["sudo","espeak","RaspivoiceWillAutostart"])
                                         config.ConfigRaspivoiceStartup = True
-                        if (MenuLevel == RaspivoiceSettings and menupos == 2):
+                        if (MenuLevel == RaspivoiceSettings and menupos == 5):
                                 MenuLevel = Main
                                 menupos = 10
                                 config.save()
@@ -342,7 +372,7 @@ while 1:  #Main Loop
                                         call (["sudo","espeak","TeradeepWillAutostart"])
                                         config.ConfigTeradeepStartup = True
                         if (MenuLevel == TeradeepSettings and menupos == 2):
-                        	config.save()
+                                config.save()
                                 MenuLevel = Main
                                 call (["sudo","espeak","Main Menu"])
                                 menupos = 10
