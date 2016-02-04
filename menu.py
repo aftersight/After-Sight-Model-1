@@ -99,17 +99,24 @@ camera = WebcamVideoStream(src=camera_port, width=640, height=480) #define where
 camerastarted = False
 raspi = Raspivoice(camera, config)
 tera = Teradeep(camera, config)
-if config.ConfigRaspivoiceStartup == True:
-        camera.start()
-        camerastarted = True
+cameraOk = camera.isOk() # Don't call this to often when the camera is stopped, since it will then temporarily init the camera to check it
+if config.ConfigRaspivoiceStartup == True and cameraOk:
+
+        camerastarted = camera.start()
         raspi.start()
-if config.ConfigTeradeepStartup == True:
+if config.ConfigTeradeepStartup == True and cameraOk:
         if not camerastarted:
-                camera.start()
-                camerastarted = True
+                camerastarted = camera.start()
 
         tera.start()
+if not cameraOk:
+	call (["sudo","espeak","No camera detected, check your connections."])
 while 1:  #Main Loop
+    if camera.cameraError and (raspi.running or tera.running):
+    	camerastarted = False
+    	raspi.stop()
+    	tera.stop()
+    	call (["sudo","espeak","There was an error with the camera, stopping applications. Try reconnect the camera, and restart applications"])
     battstate = GPIO.input(27)
     switchstate = GPIO.input(9)
     externalpowerstate = GPIO.input(10)
@@ -192,13 +199,18 @@ while 1:  #Main Loop
                 #Main=["Launch Raspivoice","Launch Teradeep","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
                         if (MenuLevel == Main and menupos == 0): #1st option in main menu list is launch raspivoice
                                 if (not raspi.running):
-                                        call (["sudo","espeak","Starting RaspiVoice"])
+                                        
                                         if (not camerastarted):
-                                                camera.start()
-                                                camerastarted = True
 
-                                        raspi.start()
-
+                                                camerastarted = camera.start()
+                                                if not camerastarted:
+                                                	call (["sudo","espeak","No camera detected, not Starting RaspiVoice"])
+                                                else:
+												call (["sudo","espeak","Starting RaspiVoice"])
+												raspi.start()
+                                        else:
+                                        	call (["sudo","espeak","Starting RaspiVoice"])
+                                        	raspi.start()
                                 else:
                                         call (["sudo","espeak","Stopping RaspiVoice"])
                                         if (not tera.running):
@@ -210,12 +222,16 @@ while 1:  #Main Loop
 
                         if (MenuLevel == Main and menupos == 1):
                                 if (not tera.running):
-                                        call (["sudo","espeak","Starting Teradeep"])
                                         if (not camerastarted):
-                                                camera.start()
-                                                camerastarted = True
-
-                                        tera.start()
+                                                camerastarted = camera.start()
+                                                if not camerastarted:
+                                                	call (["sudo","espeak","No camera detected, not Starting Teradeep"])
+                                                else:
+												call (["sudo","espeak","Starting Teradeep"])
+												tera.start()
+                                        else:
+                                        	call (["sudo","espeak","Starting Teradeep"])
+                                        	tera.start()
 
                                 else:
                                         call (["sudo","espeak","Stopping Teradeep"])
@@ -231,7 +247,7 @@ while 1:  #Main Loop
                                 if vibration == True:
                                         call (["sudo","espeak","VibrationToggledOff"])
                                         call (["sudo","killall","rangefinder"])
-                                        p.ChangeDutyCycle(0) #If it gets closed while active, this should quiet it down
+#                                        p.ChangeDutyCycle(0) #If it gets closed while active, this should quiet it down
                                         vibration = False
                                 else:
                                         if config.ConfigAudibleDistance == True:
@@ -389,13 +405,13 @@ while 1:  #Main Loop
         print ">1<3",t3
     elif (t3 > 3 and t3 <4):
         print ">3<4",t3
-        call (["sudo","killall","espeak"])
-        call (["sudo","espeak","Terminating Programs"])
+#        call (["sudo","killall","espeak"])
+#        call (["sudo","espeak","Terminating Programs"])
 #        call (["sudo","killall","raspivoice"]) # Kills raspivoice if its running
 #        call (["sudo","killall","jpcnn"]) #Kills jetpac neural net process
 #        call (["sudo","killall","jetpac"]) #Kills Jetpac Python Looper
-        call (["sudo","killall","rangefinder"]) #Kills rangefinder vibration motor python looper
-        p.ChangeDutyCycle(0) #If the vibration motor was interrupted in an energetic config this should quiet it
+#        call (["sudo","killall","rangefinder"]) #Kills rangefinder vibration motor python looper
+#        p.ChangeDutyCycle(0) #If the vibration motor was interrupted in an energetic config this should quiet it
         bequiet = False
         t3 = 5.1
         t4=5.1
