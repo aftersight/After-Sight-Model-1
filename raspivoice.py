@@ -20,7 +20,11 @@ class Raspivoice:
                 if (os.path.exists(self.raspiplayed)):
                         os.remove(self.raspiplayed)
 
-                subprocess.Popen(["sudo","/home/pi/raspivoice/Release/./raspivoice",self.Config.ConfigRaspivoiceCamera,self.Config.ConfigRaspivoicePlaybackSpeed,self.Config.ConfigBlinders,self.Config.ConfigZoom,self.Config.ConfigFovealmapping]) #Launch using config settings plus a few obligate command line flags for spoken menu and rotary encoder input
+                cmdList = ["sudo","/home/pi/raspivoice/Release/./raspivoice",self.Config.ConfigRaspivoiceCamera,self.Config.ConfigRaspivoicePlaybackSpeed,self.Config.ConfigBlinders,self.Config.ConfigZoom]
+                if self.Config.ConfigFovealmapping == "--foveal_mapping":
+                	cmdList.append("--foveal_mapping")
+                
+                subprocess.Popen(cmdList) #Launch using config settings plus a few obligate command line flags for spoken menu and rotary encoder input
                 if (os.path.exists(self.raspiframe)):
                         os.remove(self.raspiframe)
                 if (os.path.exists(self.raspiimg)):
@@ -35,8 +39,11 @@ class Raspivoice:
                                 return
 
                         if (not os.path.exists(self.raspiframe)):
-#                               res = cv2.resize(self.cam.read(), (320, 144), interpolation =cv2.INTER_AREA)
-                                res = cv2.resize(self.cam.read(), (176, 64), interpolation =cv2.INTER_AREA)
+# We need to change the resolution if Foveal mapping is enabled
+                                if self.Config.ConfigFovealmapping == "--foveal_mapping":
+                                	res = cv2.resize(self.cam.read(), (320, 240), interpolation =cv2.INTER_AREA)
+                                else:
+                                	res = cv2.resize(self.cam.read(), (176, 64), interpolation =cv2.INTER_AREA)
                                 cv2.imwrite(self.raspiimg, res)
                                 os.mknod(self.raspiframe)
 
