@@ -72,10 +72,11 @@ encoder.steps_per_cycle = 4 #the encoder always gives 4 for 1 detente
 
 oldexternalpowerstate = 0 # this variable enables an espeak event when the power plug is inserted or removed
 
-Main=["Toggle Raspivoice","Toggle Teradeep","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
-Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Audible Distance","Return to main menu"]
+Main=["Toggle Raspivoice","Toggle Teradeep","Toggle Distance Sensor","Settings","acknowledgements","Disclaimer"]
+Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Distance Sensor Settings","Return to main menu"]
 RaspivoiceSettings = ["Toggle Playback Speed","Toggle Blinders","Advance Zoom","Toggle Foveal Mapping", "Toggle Raspivoice Autostart", "Return to Main Menu"]
 TeradeepSettings = ["Next Threshold",  "Toggle Teradeep Autostart","Return to Main Menu"]
+DistanceSensorSettings = ["Cycle Feedback Method","Return to Main Menu"]
 VolumeMenu = ["Volume Up", "Volume Down", "Return to Main Menu"]
 
 #You can change and add menu items above, but you MUST go to the section where the MenuLevel and menupos are evaluated for a button press/release in under three seconds
@@ -110,13 +111,13 @@ if config.ConfigTeradeepStartup == True and cameraOk:
 
         tera.start()
 if not cameraOk:
-	call (["sudo","espeak","No camera detected, check your connections."])
+        call (["sudo","espeak","No camera detected, check your connections."])
 while 1:  #Main Loop
     if camera.cameraError and (raspi.running or tera.running):
-    	camerastarted = False
-    	raspi.stop()
-    	tera.stop()
-    	call (["sudo","espeak","There was an error with the camera, stopping applications. Try reconnect the camera, and restart applications"])
+        camerastarted = False
+        raspi.stop()
+        tera.stop()
+        call (["sudo","espeak","There was an error with the camera, stopping applications. Try reconnect the camera, and restart applications"])
     battstate = GPIO.input(27)
     switchstate = GPIO.input(9)
     externalpowerstate = GPIO.input(10)
@@ -199,18 +200,18 @@ while 1:  #Main Loop
                 #Main=["Launch Raspivoice","Launch Teradeep","Toggle Rangefinder Vibration","Settings","acknowledgements","Disclaimer"]
                         if (MenuLevel == Main and menupos == 0): #1st option in main menu list is launch raspivoice
                                 if (not raspi.running):
-                                        
+
                                         if (not camerastarted):
 
                                                 camerastarted = camera.start()
                                                 if not camerastarted:
-                                                	call (["sudo","espeak","No camera detected, not Starting RaspiVoice"])
+                                                        call (["sudo","espeak","No camera detected, not Starting RaspiVoice"])
                                                 else:
-												call (["sudo","espeak","Starting RaspiVoice"])
-												raspi.start()
+                                                                                                call (["sudo","espeak","Starting RaspiVoice"])
+                                                                                                raspi.start()
                                         else:
-                                        	call (["sudo","espeak","Starting RaspiVoice"])
-                                        	raspi.start()
+                                                call (["sudo","espeak","Starting RaspiVoice"])
+                                                raspi.start()
                                 else:
                                         call (["sudo","espeak","Stopping RaspiVoice"])
                                         if (not tera.running):
@@ -225,13 +226,13 @@ while 1:  #Main Loop
                                         if (not camerastarted):
                                                 camerastarted = camera.start()
                                                 if not camerastarted:
-                                                	call (["sudo","espeak","No camera detected, not Starting Teradeep"])
+                                                        call (["sudo","espeak","No camera detected, not Starting Teradeep"])
                                                 else:
-												call (["sudo","espeak","Starting Teradeep"])
-												tera.start()
+                                                                                                call (["sudo","espeak","Starting Teradeep"])
+                                                                                                tera.start()
                                         else:
-                                        	call (["sudo","espeak","Starting Teradeep"])
-                                        	tera.start()
+                                                call (["sudo","espeak","Starting Teradeep"])
+                                                tera.start()
 
                                 else:
                                         call (["sudo","espeak","Stopping Teradeep"])
@@ -245,15 +246,15 @@ while 1:  #Main Loop
 
                         if (MenuLevel == Main and menupos == 2):
                                 if vibration == True:
-                                        call (["sudo","espeak","VibrationToggledOff"])
+                                        call (["sudo","espeak","DistanceSensorToggledOff"])
                                         call (["sudo","killall","rangefinder"])
-#                                        p.ChangeDutyCycle(0) #If it gets closed while active, this should quiet it down
+                                        GPIO.output (20,False) #If rangefinder.py exited with the vibrator on, this offs it
                                         vibration = False
                                 else:
                                         if config.ConfigAudibleDistance == True:
-                                                call(["sudo","espeak","AudibleDistanceSelectedVibrationUnavailable"])
+                                                call(["sudo","espeak","EnglishDistanceSelectedOtherfeedbackUnavailable"])
                                         else:
-                                                call (["sudo","espeak","VibrationToggledOn"])
+                                                call (["sudo","espeak","DistanceSensorToggledOn"])
                                                 subprocess.Popen(["sudo","python","/home/pi/rangefinder.py"])
                                                 vibration = True
                         if (MenuLevel == Main and menupos == 3): #Enter The Settings Menu
@@ -266,7 +267,7 @@ while 1:  #Main Loop
                         if (MenuLevel == Main and menupos == 5):
                                 espeak_process = subprocess.Popen(["espeak", "-f","/home/pi/disclaimer.txt", "--stdout"], stdout=subprocess.PIPE)
                                 subprocess.Popen(["aplay", "-D", "sysdefault"], stdin=espeak_process.stdout, stdout=subprocess.PIPE)
-                #Settings=["Advance Volume","Raspivoice Settings", "Jetpac Settings","Return to main menu"]
+                #Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Distance Sensor Settings", "Return to main menu"]
                         if (MenuLevel == Settings and menupos == 0):
                                 commandlinevolume = int(config.ConfigVolume)
                                 commandlinevolume = commandlinevolume + 10
@@ -298,14 +299,9 @@ while 1:  #Main Loop
                                 call (["sudo","espeak","TeradeepSettings"])
                                 menupos = 10
                         if (MenuLevel == Settings and menupos == 3):
-                                if config.ConfigAudibleDistance == True:
-                                        call (["sudo","espeak","AudibleDistanceOff"])
-                                        config.ConfigAudibleDistance = False
-                                else:
-                                        call (["sudo","espeak","AudibleDistanceOn"])
-                                        call (["sudo","killall","rangefinder"]) #Kills rangefinder vibration motor python looper
-                                        config.ConfigAudibleDistance = True
-
+                                MenuLevel = DistanceSensorSettings
+                                call(["sudo","espeak","DistanceSensorSettings"])
+                                menupos = 10
                         if (MenuLevel == Settings and menupos == 4):
                                 MenuLevel = Main
                                 call (["sudo","espeak","MainMenu"])
@@ -392,6 +388,25 @@ while 1:  #Main Loop
                                 MenuLevel = Main
                                 call (["sudo","espeak","Main Menu"])
                                 menupos = 10
+                        #DistanceSensorSettings = ["Cycle Feedback Method","Return to Main Menu"]
+                        if (MenuLevel == DistanceSensorSettings and menupos == 0):
+                                if config.ConfigVibrationEnabled == True:
+                                        config.ConfigVibrationEnabled = False
+                                        config.ConfigVibrateSoundEnabled = True
+                                        call (["sudo","espeak","VibrationFeedbackDisabledToneFeedbackEnabled"])
+                                elif config.ConfigVibrateSoundEnabled == True:
+                                        config.ConfigVibrateSoundEnabled = False
+                                        config.ConfigAudibleSitance = True
+                                        call(["sudo","espeak","ToneFeedbackDisabledEnglishFeedbackEnabledLaunchTeradeepToUse"])
+                                else:
+                                        config.ConfigAudibleDistance = False
+                                        config.ConfigVibrationEnabled = True
+                                        call (["sudo","espeak","EnglishFeedbackDisabledVibrationEnabled"])
+                        if (MenuLevel == DistanceSensorSettings and menupos == 1):
+                                config.save()
+                                MenuLevel = Main
+                                call (["sudo","espeak","Main Menu"])
+                                menupos = 10
 
         t1=0 #Reset the timers
         t2=0
@@ -412,6 +427,8 @@ while 1:  #Main Loop
 #        call (["sudo","killall","jetpac"]) #Kills Jetpac Python Looper
 #        call (["sudo","killall","rangefinder"]) #Kills rangefinder vibration motor python looper
 #        p.ChangeDutyCycle(0) #If the vibration motor was interrupted in an energetic config this should quiet it
+#       Although we got rid of killing processes here, we can re-use this area for some function relating to a 3-4 second button press. Perhaps there is some equivalent of a sleep command we can use on the device to save battery power that can use a gpio pin interrupt to wake up from?
+
         bequiet = False
         t3 = 5.1
         t4=5.1
