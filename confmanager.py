@@ -16,6 +16,8 @@ class ConfManager:
                 self.ConfigBlinders = self.Config.get('AfterSightConfigSettings','configblinders') #Are blinders enabled?
                 self.ConfigZoom = self.Config.get('AfterSightConfigSettings','configzoom')#What zoom level is selected? 0, 150%, 200% (0,1.5,2.0)
                 self.ConfigFovealmapping = self.Config.get('AfterSightConfigSettings','configfovealmapping') #Is foveal mapping enabled?
+                self.ConfigVibrationEnabled = self.Config.get('AfterSightConfigSettings','configvibrationenabled') #Is Vibration enabled?
+                self.ConfigVibrateSoundEnabled = self.Config.get('AfterSightConfigSettings','configvibratesoundenabled') #Is Vibration sound enabled?
                 #If you want to add a variable here, you must create an entry in aftersight.cfg as well. otherwise no bueno
 
         def save(self):
@@ -32,5 +34,7 @@ class ConfManager:
                 self.Config.set('AfterSightConfigSettings','configblinders',self.ConfigBlinders)
                 self.Config.set('AfterSightConfigSettings','configzoom',self.ConfigZoom)
                 self.Config.set('AfterSightConfigSettings','configfovealmapping',self.ConfigFovealmapping)
+                self.Config.set('AfterSightConfigSettings','configvibrationenabled',self.ConfigVibrationEnabled)
+                self.Config.set('AfterSightConfigSettings','configvibratesoundenabled',self.ConfigVibrateSoundEnabled)
                 with open('aftersight.cfg', 'w') as configfile:    # save
                         self.Config.write(configfile)
