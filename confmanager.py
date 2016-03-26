@@ -18,7 +18,7 @@ class ConfManager:
                 self.ConfigFovealmapping = self.Config.get('AfterSightConfigSettings','configfovealmapping') #Is foveal mapping enabled?
 		self.ConfigVibrationEnabled = self.Config.get('AfterSightConfigSettings','configvibrationenabled') #Enable vibration motor
 		self.ConfigVibrateSoundEnabled = self.Config.get('AfterSightConfigSettings','configvibratesoundenabled') #Is the sound version of the vibration enabled?
-                self.ConfigUpdateNumber = self.Config.get('AfterSightConfigSettings','configupdatenumber') #What is the current update number.  This will be user to pick which update $
+                self.ConfigUpdateNumber = self.Config.getint('AfterSightConfigSettings','configupdatenumber') #What is the current update number.  This will be user to pick which update $
                 self.ConfigBatteryShutdown = self.Config.getboolean('AfterSightConfigSettings','configbatteryshutdown')#Is the timed battery shutdown enabled?
 
 		#If you want to add a variable here, you must create an entry in aftersight.cfg as well. otherwise no bueno
