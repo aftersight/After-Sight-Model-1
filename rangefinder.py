@@ -49,7 +49,7 @@ while 1:
         pulses = 20 #make constant short pulses
         print "should be checking if vibrate or tweet"
         if config.ConfigVibrateSoundEnabled == "True":
-                f = 14000
+                f = 9000
                 samples = (np.sin(2*np.pi*np.arange(fs*duration)*f/fs)).astype(np.float32)
                 stream = p.open(format = pyaudio.paFloat32, channels = 1, rate = fs, output = True)
                 #Play
@@ -68,7 +68,7 @@ while 1:
     elif (currmm > 600 and currmm < 1000):
         pulses = 10 #make constant short pulses
         if config.ConfigVibrateSoundEnabled == "True":
-                f = 12000
+                f = 8500
                 samples = (np.sin(2*np.pi*np.arange(fs*duration)*f/fs)).astype(np.float32)
                 stream = p.open(format = pyaudio.paFloat32, channels = 1, rate = fs, output = True)
                 #Play
@@ -87,7 +87,7 @@ while 1:
     elif (currmm > 1000 and currmm < 2000):
         pulses = 8 #make constant short pulses
         if config.ConfigVibrateSoundEnabled == "True":
-                f = 11000
+                f = 8000
                 samples = (np.sin(2*np.pi*np.arange(fs*duration)*f/fs)).astype(np.float32)
                 stream = p.open(format = pyaudio.paFloat32, channels = 1, rate = fs, output = True)
                 #Play
@@ -104,7 +104,7 @@ while 1:
     elif (currmm > 2000 and currmm < 3000):
         pulses = 5 #make constant short pulses
         if config.ConfigVibrateSoundEnabled == "True":
-                f = 10000
+                f = 7750
                 samples = (np.sin(2*np.pi*np.arange(fs*duration)*f/fs)).astype(np.float32)
                 stream = p.open(format = pyaudio.paFloat32, channels = 1, rate = fs, output = True)
                 #Play
@@ -121,7 +121,7 @@ while 1:
     elif (currmm > 3000 and currmm < 4000):
         pulses = 3 #make constant short pulses
         if config.ConfigVibrateSoundEnabled == "True":
-                f = 9000
+                f = 7500
                 samples = (np.sin(2*np.pi*np.arange(fs*duration)*f/fs)).astype(np.float32)
                 stream = p.open(format = pyaudio.paFloat32, channels = 1, rate = fs, output = True)
                 #Play
@@ -139,7 +139,7 @@ while 1:
     elif currmm > 4000:
         pulses = 2 #make constant short pulses
         if config.ConfigVibrateSoundEnabled == "True":
-                f = 8000
+                f = 7250
                 samples = (np.sin(2*np.pi*np.arange(fs*duration)*f/fs)).astype(np.float32)
                 stream = p.open(format = pyaudio.paFloat32, channels = 1, rate = fs, output = True)
                 #Play
