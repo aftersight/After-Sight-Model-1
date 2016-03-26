@@ -1,3 +1,5 @@
+import re #import regular expression evaluator
+import urllib #Used to test if internet is available
 import time #required for sleep pauses
 import threading #We will be making threads
 import RPi.GPIO as GPIO #We use lots of GPIOs in this program
@@ -48,8 +50,7 @@ t4=0 #The final interval of 7 seconds shuts the device down (software, not elect
 timesinceflip = 0
 
 config = ConfManager() # Load our class with settings from aftersight.cfg
-bequiet = False #Key decision making variable. Shuts the main menuing system off while other processes that use the audio channel are in operation
-                #Initially we want it to be loud and making decisions unless an application that uses audio launches on startup
+
 vibration = False #By default vibration is turned off
 
 if config.ConfigVibrationStartup: #If the config file sets rangefinder/vibration for startup, toggle the variable for the vibration motor
@@ -64,7 +65,7 @@ encoder.steps_per_cycle = 4 #the encoder always gives 4 for 1 detente
 oldexternalpowerstate = 0 # this variable enables an espeak event when the power plug is inserted or removed
 
 Main=["Toggle Raspivoice","Toggle Teradeep","Toggle Distance Sensor","Toggle Face Detection", "Settings","acknowledgements","Disclaimer"]
-Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Distance Sensor Settings","Return to main menu"]
+Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Distance Sensor Settings","Update Software","Return to main menu"]
 RaspivoiceSettings = ["Toggle Playback Speed","Toggle Blinders","Advance Zoom","Toggle Foveal Mapping", "Toggle Raspivoice Autostart", "Return to Main Menu"]
 TeradeepSettings = ["Next Threshold",  "Toggle Teradeep Autostart","Return to Main Menu"]
 DistanceSensorSettings = ["Cycle Feedback Method","Return to Main Menu"]
@@ -74,6 +75,7 @@ VolumeMenu = ["Volume Up", "Volume Down", "Return to Main Menu"]
 #You have to change the actions for the items being evaluated there.
 #If you don't, no bueno
 
+bequiet = False #This is old and can be removed, but there is some conditional code below that would have to go at the same time. 
 MenuLevel = Main #Select the Main Menu first
 menupos = 0 #position in menu list
 
@@ -105,15 +107,21 @@ if config.ConfigTeradeepStartup == True and cameraOk:
         tera.start()
 if not cameraOk:
 	call (["sudo","espeak","No camera detected, check your connections."])
+
+batteryshutdownstarttime = 0 #this will record the time when the shutdhown signal is first recieved
+batteryshutdowndetectedflag = 0 #once the low battery signal has been detected once, this flag will stay true. This will avoid situations where the light is cycling
+batteryshutdowntime = 300 #give the battery shutdown 300 seconds before forcing a shutdown
+
 while 1:  #Main Loop
     if camera.cameraError and (raspi.running or tera.running):
     	camerastarted = False
     	raspi.stop()
     	tera.stop()
+	face.stop()
     	call (["sudo","espeak","There was an error with the camera, stopping applications. Try reconnect the camera, and restart applications"])
-    battstate = GPIO.input(27)
-    switchstate = GPIO.input(9)
-    externalpowerstate = GPIO.input(10)
+    battstate = GPIO.input(27) #check if the battery low state is true or false
+    switchstate = GPIO.input(9) #if the pushbutton is depressed, this ought to be true
+    externalpowerstate = GPIO.input(10) #has external power been connected or disconnected
     CurrentMenuMaxSize = len(MenuLevel)-1 #Have to subtract one because lists start at zero, but the len function returns only natural numbers
 
     delta = encoder.get_delta()
@@ -151,7 +159,7 @@ while 1:  #Main Loop
                 print "MenuPosition" ,menupos
                 print MenuLevel
                 print "Current Menu Max Size",CurrentMenuMaxSize
-                if menupos > CurrentMenuMaxSize:
+                if menupos > CurrentMenuMaxSize: #when changing menu's, we set the position in the menu to a high value of 10. This way when the new menu is engaged the position is forced to the first item in the menu
                         menupos=0
                 if menupos<0:
                         menupos=CurrentMenuMaxSize
@@ -164,27 +172,30 @@ while 1:  #Main Loop
     if (externalpowerstate != oldexternalpowerstate):
         print ('External Power State Changed')
         if(externalpowerstate == 1):
-                #print ('External Power Connected')
                 call (["sudo","espeak","ExternalPowerConnected"])
         elif (externalpowerstate ==0):
-                #print ('External Power Disconnected')
                 call (["sudo","espeak","ExternalPowerDisconnected"])
-    #if (externalpowerstate == 0):
-        #print ('External Power Disconnected, Running from Internal Battery')
-    #if vibration == True:
-        #print "Start Vibration Routines, or make sure they are already running"
-    #elif (vibration == False):
-        #print "End vibration routines, or make sure they are not running"
     if (switchstate == 1):
         #print ('Power Switch Turned Off, System Shutdown Initiated')
         call (["sudo", "espeak", "shutdown"])
         call (["sudo", "shutdown", "-h", "now"])
-    #if (switchstate == 0):
-        #print ('Power Switch Is On, Keep Working')
     #if (battstate == 1):
-        #print ('Battery OK, keep system up')
-    #if (battstate == 0): #We should probably implement this at some point, but right now I dont want to for reasons relating to flakey operation of the battery charging module
-        #print ('Battery Low, System Shutdown')
+    #    print ('Battery OK, keep system up')
+    if (config.ConfigBatteryShutdown == True):
+	if (battstate == 1 and batteryshutdowndetectedflag == 1): #If the low power LED was on and then turned off again (the powerboost 1000c has this problem lots of detail here:https://forums.adafruit.com/viewtopic.php?f=8&t=88137 )
+		batteryshutdowndetectedflag = 0 # Make the timer stop accumulating time when the state goes low again, the flag will be set and the timer will restart
+		print ('Low Battery State Flipped killing timer') 
+    if (config.ConfigBatteryShutdown == True):
+	if (battstate == 0 and batteryshutdowndetectedflag == 0): #If the low battery state has changed from ok to low battery for the first time
+		batteryshutdowndetectedflag = 1 #Flip the flag to true so we don't keep hearing about the low battery
+		batteryshutdownstarttime = time.time() #Get the time when the countdown started
+		print('Low Battery State Found, Starting Timer')
+    if (batteryshutdowndetectedflag == 1): #The next time it loops through it will come here because the flag has been changed to true
+		batterytimesinceshutdownstarted = time.time() - batteryshutdownstarttime #This value will start returning an increasing number of seconds since the shutdown timer started
+		if (batterytimesinceshutdownstarted >= batteryshutdowntime): #if it exceeds 300 seconds...
+			call(["sudo","espeak","LowBatteryDetectedForFiveMinutesPleaseShutDownOrAddExternalPower"])
+			batteryshutdowndetectedflag = 0 #reset the 300 second timer, this means if nothing changes the user is reminded every five minutes to shut down
+		 
     if GPIO.input(25):
         #print('Button Released')
         if (t3 < 3 and t3 > 0 or keysPressed == ['\r']): #If the button is released in under 3 seconds, execute the command for the currently selected menu and function
@@ -282,7 +293,7 @@ while 1:  #Main Loop
                         if (MenuLevel == Main and menupos == 5):
                                 espeak_process = subprocess.Popen(["espeak", "-f","/home/pi/disclaimer.txt", "--stdout"], stdout=subprocess.PIPE)
                                 subprocess.Popen(["aplay", "-D", "sysdefault"], stdin=espeak_process.stdout, stdout=subprocess.PIPE)
-                #Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Distance Sensor Settings", "Return to main menu"]
+                #Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Distance Sensor Settings", "Toggle low battery shutdown", "Return to main menu"]
                         if (MenuLevel == Settings and menupos == 0):
                                 commandlinevolume = int(config.ConfigVolume)
                                 commandlinevolume = commandlinevolume + 10
@@ -318,6 +329,61 @@ while 1:  #Main Loop
 				call(["sudo","espeak","DistanceSensorSettings"])
 				menupos = 10
                         if (MenuLevel == Settings and menupos == 4):
+				if (externalpowerstate == 1):
+					call(["sudo","espeak","PleaseLeaveExternalPowerConnectedUntilUpdatesAreComplete"])
+					call(["sudo","espeak","ShuttingDownProgramsForUpdateProcedure"])
+					face.stop()
+					tera.stop()
+					raspi.stop()
+					call(["sudo","killall","rangefinder"])
+					call(["sudo", "espeak", "ProgramsTerminatedDetectingInternetConnection"])
+					try:
+						github="https://www.github.com"
+						data = urllib.urlopen(github) #Check if github.com can be connected to. That is where our files are stored
+						call(["sudo","espeak","InternetConnectionAvailableGithubAvailable"])
+						inet=1
+					except:
+						call(["sudo","espeak","InternetConnectionNotAvailableAndOrGithubIsDown"])
+						inet=0
+					if (inet == 1): #If internet is available then sync the local git directory with remote
+						currentversionstring = "CurrentVersionNumber" + str(config.ConfigUpdateNumber)
+						call(["sudo","espeak","CurrentVersionIs",currentversionstring])
+						call(["sudo","espeak","DownloadingAvailableUpdate"])
+						call(["sudo","/home/pi/./a-update.sh"])
+						call(["sudo","espeak","Updates Downloaded"])
+						call(["sudo","espeak","ComparingUpdateNumber"])
+						NewVersionNumberString = subprocess.Popen(['grep', 'updatenumber', '/home/pi/After-Sight-Model-1/aftersight.cfg'], stdout=subprocess.PIPE).communicate()[0]
+						NewVersionNumber = map(int, re.findall('\d+',NewVersionNumberString))
+						print "new Version Number is "+str(NewVersionNumber)
+						print "Current Version Number is" + str(config.ConfigUpdateNumber)
+						if (NewVersionNumber > config.ConfigUpdateNumber):
+							call(["sudo","espeak","NewVersionFoundPerformingUpdate"])
+							call(["sudo","cp","-rf","/home/pi/After-Sight-Model-1/installdeps.sh", "/home/pi/installdeps.sh"])
+							call(["sudo","espeak","InstallingDependencies"])
+							call(["sudo","/home/pi/installdeps.sh"])
+							call(["sudo","DependenciesInstalled"])
+							call(["sudo","espeak","ReplacingCore"])
+							call(["sudo","cd","/home/pi/After-Sight-Model-1"])
+							call(["sudo","./a-update_core.sh"])
+							call(["sudo","espeak","RebuildingRaspivoice"])
+							call(["sudo","cd","/home/pi/After-Sight-Model-1"])
+							call(["sudo","./a-update_voice.sh"])
+							call(["sudo","espeak","RebuildingTeradeep"])
+                	                                call(["sudo","cd","/home/pi/After-Sight-Model-1"])
+							call(["sudo","a-update_teradeep.sh"])
+							call(["sudo","espeak","RebuildingFacialDetection"])
+                                        	        call(["sudo","cd","/home/pi/After-Sight-Model-1"])
+							call(["sudo","./a-update_facedetect.sh"])
+							call(["sudo","RunningOneTimeScripts"])
+							call(["sudo","UpdateCompletedRebootRequired"])
+							call(["sudo","shutdown","-r","now"])
+					else:
+						call(["sudo","espeak","NoNewVersionNoUpdateRequired"])
+					menupos = 10				
+				else:
+					call(["sudo","espeak","ExternalPowerMustBeConnectedForUpdatePlugInAndTryAgain"])
+				menupos = 10
+			if (MenuLevel == Settings and menupos == 5):
                                 MenuLevel = Main
                                 call (["sudo","espeak","MainMenu"])
                                 menupos = 10
@@ -435,16 +501,7 @@ while 1:  #Main Loop
         print ">1<3",t3
     elif (t3 > 3 and t3 <4):
         print ">3<4",t3
-#        call (["sudo","killall","espeak"])
-#        call (["sudo","espeak","Terminating Programs"])
-#        call (["sudo","killall","raspivoice"]) # Kills raspivoice if its running
-#        call (["sudo","killall","jpcnn"]) #Kills jetpac neural net process
-#        call (["sudo","killall","jetpac"]) #Kills Jetpac Python Looper
-#        call (["sudo","killall","rangefinder"]) #Kills rangefinder vibration motor python looper
-#        p.ChangeDutyCycle(0) #If the vibration motor was interrupted in an energetic config this should quiet it
 #	Although we got rid of killing processes here, we can re-use this area for some function relating to a 3-4 second button press. Perhaps there is some equivalent of a sleep command we can use on the device to save battery power that can use a gpio pin interrupt to wake up from?
-
-        bequiet = False
         t3 = 5.1
         t4=5.1
     elif (t4 > 4 and t4 < 7):
