@@ -354,7 +354,8 @@ while 1:  #Main Loop
 						call(["sudo","espeak","ComparingUpdateNumber"])
 						NewVersionNumberString = subprocess.Popen(['grep', 'updatenumber', '/home/pi/After-Sight-Model-1/aftersight.cfg'], stdout=subprocess.PIPE).communicate()[0]
 						NewVersionNumber = map(int, re.findall('\d+',NewVersionNumberString))
-						print "new Version Number is "+str(NewVersionNumber)
+						NewVersionNumber = int(NewVersionNumber[0]) #this is weird but the regular expression put the item into a list with a size of 1
+						print "new Version Number is "+str(NewVersionNumber) #that made it so you couldn't compare the new version number to the integer value of the current version number
 						print "Current Version Number is" + str(config.ConfigUpdateNumber)
 						if (NewVersionNumber > config.ConfigUpdateNumber):
 							call(["sudo","espeak","NewVersionFoundPerformingUpdate"])
