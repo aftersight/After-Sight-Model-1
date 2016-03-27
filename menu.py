@@ -348,7 +348,7 @@ while 1:  #Main Loop
 						inet=0
 					if (inet == 1): #If internet is available then sync the local git directory with remote
 						currentversionstring = "Number" + str(config.ConfigUpdateNumber)
-						call(["sudo","espeak","CurrentVersionIs"+currentversionstring])
+						call(["sudo","espeak","CurrentUpdateIs"+currentversionstring])
 						call(["sudo","espeak","DownloadingAvailableUpdate"])
 						call(["sudo","/home/pi/./a-update.sh"])
 						call(["sudo","espeak","Updates Downloaded"])
@@ -356,11 +356,11 @@ while 1:  #Main Loop
 						NewVersionNumberString = subprocess.Popen(['grep', 'updatenumber', '/home/pi/After-Sight-Model-1/aftersight.cfg'], stdout=subprocess.PIPE).communicate()[0]
 						NewVersionNumber = map(int, re.findall('\d+',NewVersionNumberString))
 						NewVersionNumber = int(NewVersionNumber[0]) #this is weird but the regular expression put the item into a list with a size of 1
-						print "new Version Number is "+str(NewVersionNumber) #that made it so you couldn't compare the new version number to the integer value of the current version number
+						print "new Update Number is "+str(NewVersionNumber) #that made it so you couldn't compare the new version number to the integer value of the current version number
 						print "Current Version Number is" + str(config.ConfigUpdateNumber)
-						call(["sudo","espeak","NewVersionNumberis"+str(NewVersionNumber)])
+						call(["sudo","espeak","NewUpdateNumberis"+str(NewVersionNumber)])
 						if (NewVersionNumber > config.ConfigUpdateNumber):
-							call(["sudo","espeak","NewVersionFoundPerformingUpdate"])
+							call(["sudo","espeak","NewUpdateFoundPerformingUpdate"])
 							call(["sudo","cp","-rf","/home/pi/After-Sight-Model-1/installdeps.sh", "/home/pi/installdeps.sh"])
 							call(["sudo","espeak","InstallingDependencies"])
 							call(["sudo","/home/pi/installdeps.sh"])
@@ -378,20 +378,25 @@ while 1:  #Main Loop
                                         	        os.chdir("/home/pi/After-Sight-Model-1")
 							call(["sudo","./a-update_facedetect.sh"])
 							call(["sudo","RunningOneTimeScripts"])
-							
-							#grep ls -l of /home/pi/After-Sight-Model-1/updatecontrol
-							#folders will be named like this:
-							#/home/pi/After-Sight-Model-1/updatecontrol/update1
-							#the updatenumberx will be incremented each time an update is made that requires install
-							#for each folder found isolate the update number make it into an ordered list from lowest to highest
-							#compare to the current update number
-							#if the current number is less than the update number in the list 
-							#run the script in that update folder 
-							#within that folder will be one script named 'update.sh'
-							#This allows for one-time activities to take place, such as
-							#implementing a new application to /home/pi
-							call(["sudo","UpdateCompletedRebootRequired"])
-							call(["sudo","shutdown","-r","now"])
+							#one time script evaluator NEW UPDATES REQUIRE aftersight.cfg ConfigUpdateNumber to be incremented EVEN IF YOU DON'T MAKE A ONE TIME SCRIPT. Creat the folder for it under /home/pi/After-Sight-Model-1/updatecontrol/updateX and make update.sh script in the numbered folder it doesn't have to do anything. Just put it there
+							files = os.listdir('/home/pi/After-Sight-Model-1/updatecontrol')
+							unsortednumberlist = [] #the folder list returned by the os.listdir command are not sorted by number, we will use regular expression to get the numbers in a list, then sort them
+							for file in files:
+								VersionNumber = map(int, re.findall('\d+',file))
+								unsortednumberlist.extend(VersionNumber) #use extend - this makes all elements in one list. append makes a list of lists
+    								print(file)
+							print unsortednumberlist
+							unsortednumberlist.sort(key=int) #this sorts the number list
+							print unsortednumberlist
+							for number in unsortednumberlist: #now step through the list. If the number is higher than the current version number, execute the script in /home/pi/After-Sight-Model-1/updatecontrol/updateX/update.sh
+								if number > config.ConfigUpdateNumber:
+									call(["sudo","espeak","ApplyingUpdateNumber"+str(number)])
+									executescriptstring = "/home/pi/After-Sight-Model-1/updatecontrol/update" + str(number) +"/update.sh"
+									call(["sudo",executescriptstring])
+								else:
+									call(["sudo","espeak","UpdateNumber"+str(number)+"AlreadyInstalled"])	
+							call(["sudo","espeak","UpdateCompletedRebootRequired"])
+							#call(["sudo","shutdown","-r","now"])
 					else:
 						call(["sudo","espeak","NoNewVersionNoUpdateRequired"])
 					menupos = 10				
