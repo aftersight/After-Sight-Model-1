@@ -341,10 +341,10 @@ while 1:  #Main Loop
 					try:
 						github="https://www.github.com"
 						data = urllib.urlopen(github) #Check if github.com can be connected to. That is where our files are stored
-						call(["sudo","espeak","InternetConnectionAvailableGithubAvailable"])
+						call(["sudo","espeak","InternetConnectionAvailableAndUpdateServerAvailable"])
 						inet=1
 					except:
-						call(["sudo","espeak","InternetConnectionNotAvailableAndOrGithubIsDown"])
+						call(["sudo","espeak","InternetConnectionNotAvailableAndOrUpdateServerIsDown"])
 						inet=0
 					if (inet == 1): #If internet is available then sync the local git directory with remote
 						currentversionstring = "Number" + str(config.ConfigUpdateNumber)
@@ -392,13 +392,15 @@ while 1:  #Main Loop
 								if number > config.ConfigUpdateNumber:
 									call(["sudo","espeak","ApplyingUpdateNumber"+str(number)])
 									executescriptstring = "/home/pi/After-Sight-Model-1/updatecontrol/update" + str(number) +"/update.sh"
+									call(["sudo","chmod","755",executescriptstring])
 									call(["sudo",executescriptstring])
 								else:
 									call(["sudo","espeak","UpdateNumber"+str(number)+"AlreadyInstalled"])	
 							call(["sudo","espeak","UpdateCompletedRebootRequired"])
 							call(["sudo","shutdown","-r","now"])
-					else:
-						call(["sudo","espeak","NoNewVersionNoUpdateRequired"])
+						else:call(["sudo","espeak","NoNewVersionNoUpdateRequired"])
+					elif (inet == 0 ):
+						call(["sudo","espeak","CheckYourInternetConnection"])
 					menupos = 10				
 				else:
 					call(["sudo","espeak","ExternalPowerMustBeConnectedForUpdatePlugInAndTryAgain"])
