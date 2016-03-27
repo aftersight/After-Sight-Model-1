@@ -1,3 +1,4 @@
+import os #To set working directory properly
 import re #import regular expression evaluator
 import urllib #Used to test if internet is available
 import time #required for sleep pauses
@@ -364,16 +365,16 @@ while 1:  #Main Loop
 							call(["sudo","/home/pi/installdeps.sh"])
 							call(["sudo","DependenciesInstalled"])
 							call(["sudo","espeak","ReplacingCore"])
-							call(["cd","/home/pi/After-Sight-Model-1"])
+							os.chdir("/home/pi/After-Sight-Model-1")
 							call(["sudo","./a-update_core.sh"])
 							call(["sudo","espeak","RebuildingRaspivoice"])
-							call(["cd","/home/pi/After-Sight-Model-1"])
+							os.chdir("/home/pi/After-Sight-Model-1")
 							call(["sudo","./a-update_voice.sh"])
 							call(["sudo","espeak","RebuildingTeradeep"])
-                	                                call(["cd","/home/pi/After-Sight-Model-1"])
+                	                                os.chdir("/home/pi/After-Sight-Model-1")
 							call(["sudo","a-update_teradeep.sh"])
 							call(["sudo","espeak","RebuildingFacialDetection"])
-                                        	        call(["cd","/home/pi/After-Sight-Model-1"])
+                                        	        os.chdir("/home/pi/After-Sight-Model-1")
 							call(["sudo","./a-update_facedetect.sh"])
 							call(["sudo","RunningOneTimeScripts"])
 							call(["sudo","UpdateCompletedRebootRequired"])
