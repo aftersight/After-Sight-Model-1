@@ -373,7 +373,7 @@ while 1:  #Main Loop
 							call(["sudo","./a-update_voice.sh"])
 							call(["sudo","espeak","RebuildingTeradeep"])
                 	                                os.chdir("/home/pi/After-Sight-Model-1")
-							call(["sudo","a-update_teradeep.sh"])
+							call(["sudo","./a-update_teradeep.sh"])
 							call(["sudo","espeak","RebuildingFacialDetection"])
                                         	        os.chdir("/home/pi/After-Sight-Model-1")
 							call(["sudo","./a-update_facedetect.sh"])
@@ -396,7 +396,7 @@ while 1:  #Main Loop
 								else:
 									call(["sudo","espeak","UpdateNumber"+str(number)+"AlreadyInstalled"])	
 							call(["sudo","espeak","UpdateCompletedRebootRequired"])
-							#call(["sudo","shutdown","-r","now"])
+							call(["sudo","shutdown","-r","now"])
 					else:
 						call(["sudo","espeak","NoNewVersionNoUpdateRequired"])
 					menupos = 10				
