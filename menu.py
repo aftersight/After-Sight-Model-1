@@ -347,8 +347,8 @@ while 1:  #Main Loop
 						call(["sudo","espeak","InternetConnectionNotAvailableAndOrGithubIsDown"])
 						inet=0
 					if (inet == 1): #If internet is available then sync the local git directory with remote
-						currentversionstring = "CurrentVersionNumber" + str(config.ConfigUpdateNumber)
-						call(["sudo","espeak","CurrentVersionIs",currentversionstring])
+						currentversionstring = "Number" + str(config.ConfigUpdateNumber)
+						call(["sudo","espeak","CurrentVersionIs"+currentversionstring])
 						call(["sudo","espeak","DownloadingAvailableUpdate"])
 						call(["sudo","/home/pi/./a-update.sh"])
 						call(["sudo","espeak","Updates Downloaded"])
@@ -358,6 +358,7 @@ while 1:  #Main Loop
 						NewVersionNumber = int(NewVersionNumber[0]) #this is weird but the regular expression put the item into a list with a size of 1
 						print "new Version Number is "+str(NewVersionNumber) #that made it so you couldn't compare the new version number to the integer value of the current version number
 						print "Current Version Number is" + str(config.ConfigUpdateNumber)
+						call(["sudo","espeak","NewVersionNumberis"+str(NewVersionNumber)])
 						if (NewVersionNumber > config.ConfigUpdateNumber):
 							call(["sudo","espeak","NewVersionFoundPerformingUpdate"])
 							call(["sudo","cp","-rf","/home/pi/After-Sight-Model-1/installdeps.sh", "/home/pi/installdeps.sh"])
@@ -377,6 +378,18 @@ while 1:  #Main Loop
                                         	        os.chdir("/home/pi/After-Sight-Model-1")
 							call(["sudo","./a-update_facedetect.sh"])
 							call(["sudo","RunningOneTimeScripts"])
+							
+							#grep ls -l of /home/pi/After-Sight-Model-1/updatecontrol
+							#folders will be named like this:
+							#/home/pi/After-Sight-Model-1/updatecontrol/update1
+							#the updatenumberx will be incremented each time an update is made that requires install
+							#for each folder found isolate the update number make it into an ordered list from lowest to highest
+							#compare to the current update number
+							#if the current number is less than the update number in the list 
+							#run the script in that update folder 
+							#within that folder will be one script named 'update.sh'
+							#This allows for one-time activities to take place, such as
+							#implementing a new application to /home/pi
 							call(["sudo","UpdateCompletedRebootRequired"])
 							call(["sudo","shutdown","-r","now"])
 					else:
