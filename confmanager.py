@@ -20,7 +20,7 @@ class ConfManager:
 		self.ConfigVibrateSoundEnabled = self.Config.get('AfterSightConfigSettings','configvibratesoundenabled') #Is the sound version of the vibration enabled?
                 self.ConfigUpdateNumber = self.Config.getint('AfterSightConfigSettings','configupdatenumber') #What is the current update number.  This will be user to pick which update $
                 self.ConfigBatteryShutdown = self.Config.getboolean('AfterSightConfigSettings','configbatteryshutdown')#Is the timed battery shutdown enabled?
-
+		self.ConfigRaspivoiceContrast = self.Config.get('AfterSightConfigSettings','configraspivoicecontrast') #What is the contrast setting?
 		#If you want to add a variable here, you must create an entry in aftersight.cfg as well. otherwise no bueno
 
         def save(self):
@@ -41,5 +41,6 @@ class ConfManager:
 		self.Config.set('AfterSightConfigSettings','configvibratesoundenabled', self.ConfigVibrateSoundEnabled)
 		self.Config.set('AfterSightConfigSettings','configupdatenumber',self.ConfigUpdateNumber)
 		self.Config.set('AfterSightConfigSettings','configbatteryshudown',self.ConfigBatteryShutdown)
+		self.Config.set('AfterSightConfigSettings','configraspivoicecontrast',self.ConfigRaspivoiceContrast)
 		with open('aftersight.cfg', 'w') as configfile:    # save
                         self.Config.write(configfile)

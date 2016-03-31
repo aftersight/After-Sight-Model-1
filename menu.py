@@ -67,7 +67,7 @@ oldexternalpowerstate = 0 # this variable enables an espeak event when the power
 
 Main=["Toggle Raspivoice","Toggle Teradeep","Toggle Distance Sensor","Toggle Face Detection", "Settings","acknowledgements","Disclaimer"]
 Settings=["Advance Volume","Raspivoice Settings", "Teradeep Settings","Distance Sensor Settings","Update Software","Return to main menu"]
-RaspivoiceSettings = ["Toggle Playback Speed","Toggle Blinders","Advance Zoom","Toggle Foveal Mapping", "Toggle Raspivoice Autostart", "Return to Main Menu"]
+RaspivoiceSettings = ["Toggle Playback Speed","Toggle Blinders","Advance Zoom","Toggle Foveal Mapping", "Advance Contrast", "Toggle Raspivoice Autostart", "Return to Main Menu"]
 TeradeepSettings = ["Next Threshold",  "Toggle Teradeep Autostart","Return to Main Menu"]
 DistanceSensorSettings = ["Cycle Feedback Method","Return to Main Menu"]
 VolumeMenu = ["Volume Up", "Volume Down", "Return to Main Menu"]
@@ -449,14 +449,26 @@ while 1:  #Main Loop
                                         call (["sudo","espeak","FovealMappingEnabled"])
                                         config.ConfigFovealmapping = "--foveal_mapping"
                                 raspi.restart()#Restart Raspivoice with the new settings
-                        if (MenuLevel == RaspivoiceSettings and menupos == 4):
+			if (MenuLevel == RaspivoiceSettings and menupos == 4):
+				if config.ConfigRaspivoiceContrast == "--contrast=1":
+					call(["sudo","espeak","ContrastSetToFactorOf2"])
+					config.ConfigRaspivoiceContrast = "--contrast=2"
+				elif config.ConfigRaspivoiceContrast == "--contrast=2":
+					call(["sudo","espeak","ContrastSetToFactor3"])
+					config.ConfigRaspivoiceContrast = "--contrast=3"
+				elif config.ConfigRaspivoiceContrast == "--contrast=3":
+					call(["sudo","espeak","ContrastSetToFactor1"])
+					config.ConfigRaspivoiceContrast = "--contrast=1"
+				raspi.restart() #Restart with new settings
+	
+                        if (MenuLevel == RaspivoiceSettings and menupos == 5):
                                 if config.ConfigRaspivoiceStartup == True:
                                         call (["sudo","espeak","NoLaunchOnStartup"])
                                         config.ConfigRaspivoiceStartup = False
                                 else:
                                         call (["sudo","espeak","RaspivoiceWillAutostart"])
                                         config.ConfigRaspivoiceStartup = True
-                        if (MenuLevel == RaspivoiceSettings and menupos == 5):
+                        if (MenuLevel == RaspivoiceSettings and menupos == 6):
                                 MenuLevel = Main
                                 menupos = 10
                                 config.save()

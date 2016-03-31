@@ -20,7 +20,7 @@ class Raspivoice:
                 if (os.path.exists(self.raspiplayed)):
                         os.remove(self.raspiplayed)
 
-                cmdList = ["sudo","/home/pi/raspivoice/Release/./raspivoice",self.Config.ConfigRaspivoiceCamera,self.Config.ConfigRaspivoicePlaybackSpeed,self.Config.ConfigBlinders,self.Config.ConfigZoom]
+                cmdList = ["sudo","/home/pi/raspivoice/Release/./raspivoice",self.Config.ConfigRaspivoiceCamera,self.Config.ConfigRaspivoicePlaybackSpeed,self.Config.ConfigBlinders,self.Config.ConfigZoom, self.Config.ConfigRaspivoiceContrast]
                 if self.Config.ConfigFovealmapping == "--foveal_mapping":
                 	cmdList.append("--foveal_mapping")
                 
