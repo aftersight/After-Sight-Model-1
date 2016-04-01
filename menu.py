@@ -395,7 +395,7 @@ while 1:  #Main Loop
 									call(["sudo","chmod","755",executescriptstring])
 									call(["sudo",executescriptstring])
 								else:
-									call(["sudo","espeak","UpdateNumber"+str(number)+"AlreadyInstalled"])	
+									print "UpdateNumber"+str(number)+"AlreadyInstalled"])	
 							call(["sudo","espeak","UpdateCompletedRebootRequired"])
 							call(["sudo","shutdown","-r","now"])
 						else:call(["sudo","espeak","NoNewVersionNoUpdateRequired"])
@@ -450,15 +450,18 @@ while 1:  #Main Loop
                                         config.ConfigFovealmapping = "--foveal_mapping"
                                 raspi.restart()#Restart Raspivoice with the new settings
 			if (MenuLevel == RaspivoiceSettings and menupos == 4):
-				if config.ConfigRaspivoiceContrast == "--contrast=1":
-					call(["sudo","espeak","ContrastSetToFactorOf2"])
+				if config.ConfigRaspivoiceContrast == "--contrast=0":
+					call(["sudo","espeak","ContrastSetToFactorOf1"])
+					config.ConfigRaspivoiceContrast = "--contrast=1"
+				elif config.ConfigRaspivoiceContrast == "--contrast=1":
+					call(["sudo","espeak","ContrastSetToFactor2"])
 					config.ConfigRaspivoiceContrast = "--contrast=2"
 				elif config.ConfigRaspivoiceContrast == "--contrast=2":
 					call(["sudo","espeak","ContrastSetToFactor3"])
 					config.ConfigRaspivoiceContrast = "--contrast=3"
 				elif config.ConfigRaspivoiceContrast == "--contrast=3":
-					call(["sudo","espeak","ContrastSetToFactor1"])
-					config.ConfigRaspivoiceContrast = "--contrast=1"
+					call(["sudo","espeak","ContrastSetToFactor0"])
+					config.ConfigRaspivoiceContrast = "--contrast=0"
 				raspi.restart() #Restart with new settings
 	
                         if (MenuLevel == RaspivoiceSettings and menupos == 5):
