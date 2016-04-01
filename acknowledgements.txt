@@ -10,7 +10,7 @@ Peter Meijer for the image to sound conversion algorithm. Please visit www.seein
 Pranav Lal for incessant constructive feedback. 
 
 The Raspberry Pi forum contributors for always having somethings positive to contribute from code to revelations of new technology to cheap chinese electronics supplier connections...
- Mr. Indoj from the forums especially has made great contributions. 
+Mikael Holmgren from the forums especially has made great and numerous contributions. 
 The creators of the Teradeep neural network program
 
 . Murobo for letting me adapt a very good 3D printable case model
