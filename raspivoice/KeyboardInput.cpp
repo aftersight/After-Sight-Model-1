@@ -200,7 +200,7 @@ std::string KeyboardInput::GetInteractiveCommandList()
 	cmdlist << "4: Edge detection [off, 50%%, 100%%]" << std::endl;
 	cmdlist << "5: Threshold [off, 25%%, 50%%, 75%%]" << std::endl;
 	cmdlist << "6: Brightness [low, normal, high]" << std::endl;
-	cmdlist << "7: Contrast [x1, x2, x3]" << std::endl;
+	cmdlist << "7: Contrast [x0, x1, x2, x3]" << std::endl;
 	cmdlist << "8: Foveal mapping [off, on]" << std::endl;
 	cmdlist << ".: Restore defaults" << std::endl;
 	cmdlist << "q, [Escape]: Quit" << std::endl;
@@ -363,7 +363,7 @@ std::string KeyboardInput::KeyPressedAction(int ch)
 				}
 				break;
 			case '7':
-				cycleValues(rvopt.contrast, { 1.0, 2.0, 3.0 }, changevalue);
+				cycleValues(rvopt.contrast, { 0.0, 1.0, 2.0, 3.0 }, changevalue);
 				state_str << "contrast factor " << rvopt.contrast;
 				break;
 			case '8':
