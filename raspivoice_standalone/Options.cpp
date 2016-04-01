@@ -70,7 +70,7 @@ RaspiVoiceOptions GetDefaultOptions()
 	opt.read_frames = 2;
 	opt.exposure = 0;
 	opt.brightness = 0;
-	opt.contrast = 1.0;
+	opt.contrast = 2.0;
 	opt.blinders = 0;
 	opt.zoom = 1;
 	opt.foveal_mapping = false;
@@ -276,7 +276,7 @@ void ShowHelp()
 	std::cout << "-R, --read_frames=[2]\t\t\tSet number of frames to read from camera before processing (>= 1). Optimize for minimal lag." << std::endl;
 	std::cout << "-e  --exposure=[0]\t\t\tCamera exposure time setting, 1-100. Use 0 for auto." << std::endl;
 	std::cout << "-B  --brightness=[0]\t\t\tAdditional brightness, -255 to 255." << std::endl;
-	std::cout << "-C  --contrast=[1.0]\t\t\tContrast enhancement factor >= 1.0" << std::endl;
+	std::cout << "-C  --contrast=[2.0]\t\t\tContrast enhancement factor >= 0.0" << std::endl;
 	std::cout << "-b  --blinders=[0]\t\t\tBlinders left and right, pixel size (0-89 for default columns)" << std::endl;
 	std::cout << "-z  --zoom=[1.0]\t\t\tZoom factor (>= 1.0)" << std::endl;
 	std::cout << "-m  --foveal_mapping\t\t\tEnable foveal mapping (barrel distortion magnifying center region)" << std::endl;
