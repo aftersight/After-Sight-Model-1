@@ -305,16 +305,23 @@ void RaspiVoice::processImage(cv::Mat rawImage)
 			processedImage(cv::Rect(columns - 1 - opt.blinders, 0, opt.blinders, rows - 1)).setTo(0);
 		}
 
-		if ((opt.contrast != 1.0) || (opt.brightness != 0))
+		if (opt.contrast != 0.0)  // Set default value for opt.contrast to 2.0
 		{
-			float alpha = opt.contrast;
-			int beta = opt.brightness;
-
+			float avg = 0.0;    
 			for (int y = 0; y < processedImage.rows; y++)
 			{
 				for (int x = 0; x < processedImage.cols; x++)
 				{
-					processedImage.at<uchar>(y, x) = cv::saturate_cast<uchar>(alpha*(processedImage.at<uchar>(y, x)) + beta);
+					avg += processedImage.at<uchar>(y, x);
+				}
+			}
+			avg = avg / (processedImage.rows * processedImage.cols);
+			for (int y = 0; y < processedImage.rows; y++)
+			{
+				for (int x = 0; x < processedImage.cols; x++)
+				{
+					int mVal = processedImage.at<uchar>(y, x);
+					processedImage.at<uchar>(y, x) = cv::saturate_cast<uchar>(mVal + opt.contrast*(mVal - avg));
 				}
 			}
 		}
