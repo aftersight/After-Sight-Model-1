@@ -395,7 +395,7 @@ while 1:  #Main Loop
 									call(["sudo","chmod","755",executescriptstring])
 									call(["sudo",executescriptstring])
 								else:
-									print "UpdateNumber"+str(number)+"AlreadyInstalled"])	
+									print "UpdateNumber"+str(number)+"AlreadyInstalled"	
 							call(["sudo","espeak","UpdateCompletedRebootRequired"])
 							call(["sudo","shutdown","-r","now"])
 						else:call(["sudo","espeak","NoNewVersionNoUpdateRequired"])
